@@ -1,0 +1,35 @@
+# CODEOWNERS — routes paths to responsible agent teams.
+# Last path match wins. Agents are GitHub teams under the org.
+# Ref: ARD §17
+
+# Fallback: CI agent owns everything not otherwise matched
+*                           @aegis-project/ci
+
+# CI / CD / Infrastructure-as-code
+.github/                    @aegis-project/ci
+.github/workflows/          @aegis-project/ci
+infra/                      @aegis-project/infra
+
+# Frontend (Vercel)
+apps/web/                   @aegis-project/frontend
+
+# Backend API (EC2)
+apps/api/                   @aegis-project/backend
+
+# Shared packages / libraries
+packages/                   @aegis-project/backend @aegis-project/frontend
+
+# Core Aegis detection engine
+aegis/                      @aegis-project/core
+src/                        @aegis-project/core
+
+# Security-sensitive paths — require security agent review
+aegis/crypto/               @aegis-project/security @aegis-project/core
+aegis/auth/                 @aegis-project/security @aegis-project/core
+apps/api/auth/              @aegis-project/security @aegis-project/backend
+
+# Dependabot / dependency management
+.github/dependabot.yml      @aegis-project/ci @aegis-project/security
+requirements*.txt           @aegis-project/ci @aegis-project/security
+package*.json               @aegis-project/ci @aegis-project/security
+pyproject.toml              @aegis-project/ci @aegis-project/security

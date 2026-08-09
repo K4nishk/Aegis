@@ -1,0 +1,56 @@
+name: Security Vulnerability
+description: Report a security vulnerability (non-critical; for critical issues use private reporting)
+labels: ["security", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > **IMPORTANT**: For critical or high-severity vulnerabilities, please use
+        > [GitHub's private vulnerability reporting](../../security/advisories/new) instead of this form.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Vulnerability Summary
+      description: A concise, non-revealing description
+      placeholder: "e.g. Path traversal in scan target resolution"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity (CVSS estimate)
+      options:
+        - Critical (9.0-10.0)
+        - High (7.0-8.9)
+        - Medium (4.0-6.9)
+        - Low (0.1-3.9)
+        - Informational
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the vulnerability, its impact, and affected component(s)
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal reproduction steps (only include if safe to share publicly)
+    validations:
+      required: false
+
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: Suggested Mitigation
+      description: If you have ideas for a fix, share them here
+    validations:
+      required: false
