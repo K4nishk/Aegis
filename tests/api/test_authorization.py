@@ -224,9 +224,7 @@ class TestOwnershipIsolation:
                 cur.execute("SET LOCAL app.user_id = %s", (_USER_B,))
                 cur.execute("SELECT id FROM scan_runs WHERE id = %s", (scan_id,))
                 row = cur.fetchone()
-            assert row is None, (
-                "RLS should hide user A's scan when app.user_id = user B"
-            )
+            assert row is None, "RLS should hide user A's scan when app.user_id = user B"
             conn.rollback()
         finally:
             conn.close()
@@ -274,9 +272,7 @@ class TestOwnershipIsolation:
                     (b_scan_id,),
                 )
                 count = cur.fetchone()[0]
-            assert count == 0, (
-                f"RLS should hide user B's nodes from user A; found {count}"
-            )
+            assert count == 0, f"RLS should hide user B's nodes from user A; found {count}"
             conn.rollback()
         finally:
             conn.close()

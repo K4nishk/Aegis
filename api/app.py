@@ -98,9 +98,7 @@ def _write_audit_log(
                     f"{method} {path}",
                     "api_request",
                     resource_id,
-                    json.dumps(
-                        {"status_code": status_code, "correlation_id": correlation_id}
-                    ),
+                    json.dumps({"status_code": status_code, "correlation_id": correlation_id}),
                 ),
             )
         conn.close()

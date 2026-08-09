@@ -34,7 +34,14 @@ _CLAUDE_DESKTOP = _FIXTURES / "claude_desktop.json"
 class TestOwaspMapping:
     """All posture rules have an OWASP ref and a severity level."""
 
-    _ALL_RULES = ["trifecta_path", "poisoning", "rug_pull", "secret_in_desc", "no_auth", "no_ratelimit"]
+    _ALL_RULES = [
+        "trifecta_path",
+        "poisoning",
+        "rug_pull",
+        "secret_in_desc",
+        "no_auth",
+        "no_ratelimit",
+    ]
 
     def test_all_rules_have_owasp_ref(self):
         for rule in self._ALL_RULES:
@@ -126,7 +133,10 @@ class TestRenderHtmlReport:
             "score": score,
             "triggered_rules": ["trifecta_path"],
             "trifecta_findings": [
-                {"path": ["server::reader", "server::browser", "server::sender"], "confidence": "high"}
+                {
+                    "path": ["server::reader", "server::browser", "server::sender"],
+                    "confidence": "high",
+                }
             ],
             "warnings": [],
             "rules": [
@@ -310,9 +320,7 @@ class TestReportHtmlIntegration:
         assert ".html" in cd
 
     def test_html_report_404_unknown_scan(self, db_client: TestClient):
-        resp = db_client.get(
-            "/scans/00000000-0000-0000-0000-000000000099/report?fmt=html"
-        )
+        resp = db_client.get("/scans/00000000-0000-0000-0000-000000000099/report?fmt=html")
         assert resp.status_code == 404
 
     def test_html_report_aibom_link_present(self, db_client: TestClient):

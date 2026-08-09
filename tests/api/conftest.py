@@ -16,6 +16,7 @@ _MIGRATION_FILES = [
     "V5__add_owner_rls.up.sql",
 ]
 
+
 @pytest.fixture(autouse=True)
 def _api_dev_no_auth():
     """Set AEGIS_DEV_NO_AUTH=1 for all API tests so create_app() succeeds (KCH-30).

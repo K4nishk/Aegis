@@ -106,9 +106,13 @@ class EvalReport:
     def summary_lines(self) -> list[str]:
         lines: list[str] = []
         lines.append(f"n_tools          = {self.n_tools}")
-        lines.append(f"ambiguity_rate   = {self.ambiguity_rate:.1%}  (KILL if >40%: {'TRIGGERED' if self.kill_ambiguity else 'ok'})")
+        lines.append(
+            f"ambiguity_rate   = {self.ambiguity_rate:.1%}  (KILL if >40%: {'TRIGGERED' if self.kill_ambiguity else 'ok'})"
+        )
         lines.append("")
-        lines.append(f"{'cap':<26} {'P':>7} {'R':>7} {'F1':>7} {'TP':>4} {'FP':>4} {'FN':>4} {'TN':>4}")
+        lines.append(
+            f"{'cap':<26} {'P':>7} {'R':>7} {'F1':>7} {'TP':>4} {'FP':>4} {'FN':>4} {'TN':>4}"
+        )
         lines.append("-" * 75)
         for c in self.per_cap.values():
             lines.append(
@@ -120,8 +124,12 @@ class EvalReport:
             f"{'MACRO':<26} {self.macro_precision:>7.1%} {self.macro_recall:>7.1%} {self.macro_f1:>7.1%}"
         )
         lines.append("")
-        lines.append(f"macro_precision  = {self.macro_precision:.1%}  (KILL if <60%: {'TRIGGERED' if self.kill_precision else 'ok'})")
-        lines.append(f"macro_f1         = {self.macro_f1:.1%}  (KILL if <70%: {'TRIGGERED' if self.kill_f1 else 'ok'})")
+        lines.append(
+            f"macro_precision  = {self.macro_precision:.1%}  (KILL if <60%: {'TRIGGERED' if self.kill_precision else 'ok'})"
+        )
+        lines.append(
+            f"macro_f1         = {self.macro_f1:.1%}  (KILL if <70%: {'TRIGGERED' if self.kill_f1 else 'ok'})"
+        )
         lines.append(
             f"seeded_bad_missed= {len(self.seeded_bad_missed)}  (KILL if >0: {'TRIGGERED' if self.kill_seeded_bad else 'ok'})"
         )
@@ -254,9 +262,7 @@ def run_eval(
 
         # KILL check: seeded-bad tool must have all True caps detected
         if entry.seeded_bad and missed_caps:
-            seeded_bad_missed.append(
-                f"{entry.node_key} (missed caps: {', '.join(missed_caps)})"
-            )
+            seeded_bad_missed.append(f"{entry.node_key} (missed caps: {', '.join(missed_caps)})")
 
     ambiguity_rate = n_ambiguous / len(entries) if entries else 0.0
 

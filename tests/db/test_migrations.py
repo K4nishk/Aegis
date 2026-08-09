@@ -81,9 +81,7 @@ def test_trifecta_columns_present(up_sql: str, col: str) -> None:
 def test_trifecta_columns_are_boolean(up_sql: str) -> None:
     for col in TRIFECTA_COLS:
         pattern = rf"{re.escape(col)}\s+BOOLEAN"
-        assert re.search(pattern, up_sql, re.IGNORECASE), (
-            f"Column {col} is not declared as BOOLEAN"
-        )
+        assert re.search(pattern, up_sql, re.IGNORECASE), f"Column {col} is not declared as BOOLEAN"
 
 
 # ---------------------------------------------------------------------------
@@ -104,14 +102,8 @@ def test_caps_jsonb_column(up_sql: str) -> None:
 
 def test_partial_index_on_trifecta(up_sql: str) -> None:
     # Must contain a WHERE clause with all three trifecta columns
-    where_blocks = re.findall(
-        r"WHERE\s+(.+?)(?:;|\n\n)", up_sql, re.IGNORECASE | re.DOTALL
-    )
-    trifecta_where = [
-        b
-        for b in where_blocks
-        if all(col in b for col in TRIFECTA_COLS)
-    ]
+    where_blocks = re.findall(r"WHERE\s+(.+?)(?:;|\n\n)", up_sql, re.IGNORECASE | re.DOTALL)
+    trifecta_where = [b for b in where_blocks if all(col in b for col in TRIFECTA_COLS)]
     assert trifecta_where, (
         "No partial index WHERE clause referencing all three trifecta columns found"
     )
@@ -144,16 +136,12 @@ def test_audit_log_range_partition(up_sql: str) -> None:
 def test_audit_log_monthly_partitions_present(up_sql: str) -> None:
     # Should have at least 12 monthly partitions
     partitions = re.findall(r"audit_log_\d{4}_\d{2}", up_sql)
-    assert len(partitions) >= 12, (
-        f"Expected >=12 monthly partitions, found {len(partitions)}"
-    )
+    assert len(partitions) >= 12, f"Expected >=12 monthly partitions, found {len(partitions)}"
 
 
 def test_audit_log_partition_covers_current_month(up_sql: str) -> None:
     # 2026-08 (today per system) must have a partition
-    assert "audit_log_2026_08" in up_sql, (
-        "Partition for 2026-08 (current month) not found"
-    )
+    assert "audit_log_2026_08" in up_sql, "Partition for 2026-08 (current month) not found"
 
 
 # ---------------------------------------------------------------------------

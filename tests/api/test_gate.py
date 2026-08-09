@@ -97,9 +97,7 @@ class TestGatePrerequisitesNoDB:
     def test_known_bad_score_below_gate_threshold(self):
         """known_bad score must be < 70 so the default gate blocks it."""
         _, _, posture = self._analyze_path(_KNOWN_BAD)
-        assert posture.score < 70, (
-            f"known_bad scored {posture.score}; expected < 70 so gate blocks"
-        )
+        assert posture.score < 70, f"known_bad scored {posture.score}; expected < 70 so gate blocks"
 
     def test_known_bad_triggers_trifecta_rule(self):
         """known_bad must trigger the trifecta_path posture rule."""
@@ -118,9 +116,7 @@ class TestGatePrerequisitesNoDB:
     def test_clean_config_score_passes_gate(self):
         """Clean config score must be >= 70 so the default gate passes it."""
         _, _, posture = self._analyze_dict(_CLEAN_MCP)
-        assert posture.score >= 70, (
-            f"Clean config scored {posture.score}; expected >= 70"
-        )
+        assert posture.score >= 70, f"Clean config scored {posture.score}; expected >= 70"
 
 
 # ---------------------------------------------------------------------------
@@ -135,9 +131,8 @@ def test_gate_macro_f1_threshold():
     entries = load_gold_labels(_GOLD_LABELS)
     nodes = build_tool_nodes(entries, _FIXTURES)
     report = run_eval(entries, nodes)
-    assert not report.kill_f1, (
-        f"Macro F1 {report.macro_f1:.1%} < 70% — CI gate FAIL\n"
-        + "\n".join(report.summary_lines())
+    assert not report.kill_f1, f"Macro F1 {report.macro_f1:.1%} < 70% — CI gate FAIL\n" + "\n".join(
+        report.summary_lines()
     )
 
 
@@ -148,9 +143,8 @@ def test_gate_seeded_bad_not_missed():
     entries = load_gold_labels(_GOLD_LABELS)
     nodes = build_tool_nodes(entries, _FIXTURES)
     report = run_eval(entries, nodes)
-    assert not report.kill_seeded_bad, (
-        "Seeded-bad tools missed by classifier:\n"
-        + "\n".join(f"  {m}" for m in report.seeded_bad_missed)
+    assert not report.kill_seeded_bad, "Seeded-bad tools missed by classifier:\n" + "\n".join(
+        f"  {m}" for m in report.seeded_bad_missed
     )
 
 
@@ -187,9 +181,7 @@ class TestGateIntegration:
         resp = db_client.post("/gate", json={"scan_id": scan["id"], "min_score": 70})
         assert resp.status_code == 200
         result = resp.json()
-        assert result["passed"] is False, (
-            f"Gate should block known_bad (score={result['score']})"
-        )
+        assert result["passed"] is False, f"Gate should block known_bad (score={result['score']})"
         assert "trifecta_path" in result["triggered_rules"]
 
     def test_clean_config_passes_gate(self, db_client: TestClient):
@@ -265,15 +257,11 @@ class TestGateIntegration:
             conn.close()
 
         # Check each route category is represented
-        assert any(a == "POST /scans" for a in actions), (
-            "POST /scans not found in audit_log"
-        )
+        assert any(a == "POST /scans" for a in actions), "POST /scans not found in audit_log"
         assert any(a.startswith(f"GET /scans/{scan_id}") for a in actions), (
             f"GET /scans/{scan_id}[...] not found in audit_log"
         )
-        assert any(a == "POST /gate" for a in actions), (
-            "POST /gate not found in audit_log"
-        )
+        assert any(a == "POST /gate" for a in actions), "POST /gate not found in audit_log"
         # Verify at least 5 rows were written (one per route call)
         assert len(actions) >= 5, (
             f"Expected >=5 audit_log rows across all routes; got {len(actions)}"

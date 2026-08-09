@@ -279,7 +279,7 @@ def test_def_hash_changes_on_mutation() -> None:
 def test_def_hash_format() -> None:
     h = compute_def_hash({"name": "x"})
     assert h.startswith("sha256:")
-    hex_part = h[len("sha256:"):]
+    hex_part = h[len("sha256:") :]
     assert len(hex_part) == 64
     assert all(c in "0123456789abcdef" for c in hex_part)
 
@@ -330,11 +330,7 @@ def test_infer_caps_empty_def() -> None:
 
 def test_parse_dict_input() -> None:
     cfg = {
-        "mcpServers": {
-            "myserver": {
-                "tools": [{"name": "my_tool", "description": "Get some data"}]
-            }
-        }
+        "mcpServers": {"myserver": {"tools": [{"name": "my_tool", "description": "Get some data"}]}}
     }
     result = parse_mcp_config(cfg)
     assert len(result.nodes) == 1
@@ -418,11 +414,7 @@ def test_parse_source_name_label() -> None:
 
 
 def test_parse_servers_key_alias() -> None:
-    cfg: dict = {
-        "servers": {
-            "s": {"tools": [{"name": "t", "description": "List something"}]}
-        }
-    }
+    cfg: dict = {"servers": {"s": {"tools": [{"name": "t", "description": "List something"}]}}}
     result = parse_mcp_config(cfg)
     assert len(result.nodes) == 1
 
@@ -499,9 +491,7 @@ def test_edges_control_exec_to_target() -> None:
 
 def test_edges_single_tool_no_edges() -> None:
     cfg: dict = {
-        "mcpServers": {
-            "srv": {"tools": [{"name": "only_tool", "description": "The sole tool"}]}
-        }
+        "mcpServers": {"srv": {"tools": [{"name": "only_tool", "description": "The sole tool"}]}}
     }
     result = parse_mcp_config(cfg)
     assert result.edges == []
@@ -745,9 +735,7 @@ def test_server_name_preserved_in_flat_tools_with_server() -> None:
 def test_server_name_in_node_key_format() -> None:
     """node_key == server_name/tool_name when server_name is non-empty."""
     cfg: dict = {
-        "mcpServers": {
-            "fs": {"tools": [{"name": "read_file", "description": "Read a file"}]}
-        }
+        "mcpServers": {"fs": {"tools": [{"name": "read_file", "description": "Read a file"}]}}
     }
     result = parse_mcp_config(cfg)
     node = result.nodes[0]
@@ -814,12 +802,8 @@ def test_integration_server_name_round_trip() -> None:
 
         cfg: dict = {
             "mcpServers": {
-                "filesystem": {
-                    "tools": [{"name": "read_file", "description": "Read a file"}]
-                },
-                "fetch": {
-                    "tools": [{"name": "fetch_url", "description": "Fetch a URL via http"}]
-                },
+                "filesystem": {"tools": [{"name": "read_file", "description": "Read a file"}]},
+                "fetch": {"tools": [{"name": "fetch_url", "description": "Fetch a URL via http"}]},
             }
         }
         graph = parse_mcp_config(cfg)

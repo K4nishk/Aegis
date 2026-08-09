@@ -146,7 +146,8 @@ class TestSpikeDetection:
                 log_auth_failure(ip=self._IP, actor="attacker", reason="bad_key")
 
         critical = [
-            r for r in caplog.records
+            r
+            for r in caplog.records
             if r.name == "aegis.security" and r.levelno == logging.CRITICAL
         ]
         assert not critical, "Should not emit spike_alert below threshold"
@@ -162,7 +163,8 @@ class TestSpikeDetection:
                 log_auth_failure(ip=self._IP, actor="attacker", reason="bad_key")
 
         critical = [
-            r for r in caplog.records
+            r
+            for r in caplog.records
             if r.name == "aegis.security" and r.levelno == logging.CRITICAL
         ]
         assert critical, "Expected spike_alert CRITICAL record at threshold"
@@ -179,7 +181,8 @@ class TestSpikeDetection:
                 log_auth_failure(ip=self._IP, actor="attacker", reason="bad_key")
 
         critical = [
-            r for r in caplog.records
+            r
+            for r in caplog.records
             if r.name == "aegis.security" and r.levelno == logging.CRITICAL
         ]
         assert critical, "Expected spike_alert above threshold too"
@@ -202,7 +205,8 @@ class TestSpikeDetection:
                     log_auth_failure(ip=ip_b, actor="b", reason="bad_key")
 
             critical = [
-                r for r in caplog.records
+                r
+                for r in caplog.records
                 if r.name == "aegis.security" and r.levelno == logging.CRITICAL
             ]
             assert not critical, "IPs should not contaminate each other's counters"

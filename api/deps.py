@@ -85,7 +85,9 @@ async def get_current_user(
         if not configured_key:
             # Misconfiguration: startup check should have prevented this.
             _log.warning("security_event=auth_failure reason=no_key_configured")
-            log_auth_failure(ip=ip, actor=actor, reason="no_key_configured", correlation_id=correlation_id)
+            log_auth_failure(
+                ip=ip, actor=actor, reason="no_key_configured", correlation_id=correlation_id
+            )
             raise HTTPException(status_code=401, detail="Invalid or missing API key")
         if not secrets.compare_digest(key or "", configured_key):
             _log.warning(

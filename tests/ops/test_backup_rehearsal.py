@@ -6,6 +6,7 @@ pattern used across the test suite).
 
 On success, writes a timestamped receipt to ops/rehearsal_receipt.txt.
 """
+
 from __future__ import annotations
 
 import shutil
@@ -67,8 +68,7 @@ def src_db(pg):
 
     def _terminate_and_drop(cur, name: str) -> None:
         cur.execute(
-            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
-            f"WHERE datname = '{name}'"
+            f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{name}'"
         )
         cur.execute(f"DROP DATABASE IF EXISTS {name}")
 
@@ -206,8 +206,7 @@ def test_restore_rehearsal(pg, src_db):
 
     for table in tables:
         assert src_counts[table] == dst_counts[table], (
-            f"Row count mismatch for {table}: "
-            f"src={src_counts[table]} dst={dst_counts[table]}"
+            f"Row count mismatch for {table}: src={src_counts[table]} dst={dst_counts[table]}"
         )
 
     # ------------------------------------------------------------------
@@ -215,8 +214,7 @@ def test_restore_rehearsal(pg, src_db):
     # ------------------------------------------------------------------
     with admin.cursor() as cur:
         cur.execute(
-            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
-            f"WHERE datname = '{_DST_DB}'"
+            f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{_DST_DB}'"
         )
         cur.execute(f"DROP DATABASE IF EXISTS {_DST_DB}")
     admin.close()
@@ -226,9 +224,7 @@ def test_restore_rehearsal(pg, src_db):
     # + timestamped)
     # ------------------------------------------------------------------
     ts = datetime.now(tz=UTC).isoformat()
-    rows_detail = "\n".join(
-        f"  {t}: {src_counts[t]} rows (src == dst)" for t in tables
-    )
+    rows_detail = "\n".join(f"  {t}: {src_counts[t]} rows (src == dst)" for t in tables)
     receipt = (
         "AEGIS BACKUP RESTORE REHEARSAL RECEIPT\n"
         "=======================================\n"

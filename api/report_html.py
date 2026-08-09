@@ -23,30 +23,30 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 # OWASP LLM Top 10 2025 references for each Aegis posture rule.
 _OWASP_REF: dict[str, tuple[str, str]] = {
-    "trifecta_path":   ("LLM01:2025", "Prompt Injection"),
-    "poisoning":       ("LLM01:2025", "Prompt Injection"),
-    "rug_pull":        ("LLM03:2025", "Supply Chain"),
-    "secret_in_desc":  ("LLM02:2025", "Sensitive Information Disclosure"),
-    "no_auth":         ("LLM06:2025", "Excessive Agency"),
-    "no_ratelimit":    ("LLM10:2025", "Unbounded Consumption"),
+    "trifecta_path": ("LLM01:2025", "Prompt Injection"),
+    "poisoning": ("LLM01:2025", "Prompt Injection"),
+    "rug_pull": ("LLM03:2025", "Supply Chain"),
+    "secret_in_desc": ("LLM02:2025", "Sensitive Information Disclosure"),
+    "no_auth": ("LLM06:2025", "Excessive Agency"),
+    "no_ratelimit": ("LLM10:2025", "Unbounded Consumption"),
 }
 
 # Severity derived from rule deduction weight.
 _RULE_SEVERITY: dict[str, str] = {
-    "trifecta_path":   "CRITICAL",
-    "poisoning":       "HIGH",
-    "rug_pull":        "HIGH",
-    "secret_in_desc":  "MEDIUM",
-    "no_auth":         "MEDIUM",
-    "no_ratelimit":    "LOW",
+    "trifecta_path": "CRITICAL",
+    "poisoning": "HIGH",
+    "rug_pull": "HIGH",
+    "secret_in_desc": "MEDIUM",
+    "no_auth": "MEDIUM",
+    "no_ratelimit": "LOW",
 }
 
 _SEVERITY_RANK: dict[str, int] = {
     "CRITICAL": 0,
-    "HIGH":     1,
-    "MEDIUM":   2,
-    "LOW":      3,
-    "OK":       4,
+    "HIGH": 1,
+    "MEDIUM": 2,
+    "LOW": 3,
+    "OK": 4,
 }
 
 # ---------------------------------------------------------------------------

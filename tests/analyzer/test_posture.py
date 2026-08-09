@@ -56,7 +56,14 @@ def test_max_score_is_100() -> None:
 
 
 def test_rules_catalogue_complete() -> None:
-    expected = {"trifecta_path", "poisoning", "rug_pull", "secret_in_desc", "no_auth", "no_ratelimit"}
+    expected = {
+        "trifecta_path",
+        "poisoning",
+        "rug_pull",
+        "secret_in_desc",
+        "no_auth",
+        "no_ratelimit",
+    }
     assert set(RULES.keys()) == expected
 
 
@@ -78,8 +85,7 @@ PERFECT_TOOLS = [
     {
         "name": "health",
         "description": (
-            "Service health status. OAuth bearer authorization required. "
-            "rate_limit: 1000 req/min."
+            "Service health status. OAuth bearer authorization required. rate_limit: 1000 req/min."
         ),
     }
 ]
@@ -300,9 +306,7 @@ def test_ra3_safer_scores_higher_than_riskier() -> None:
     safe_tools = [
         {
             "name": "list_items",
-            "description": (
-                "List items. Requires OAuth bearer token. Respects rate_limit."
-            ),
+            "description": ("List items. Requires OAuth bearer token. Respects rate_limit."),
         }
     ]
     risky_tools = [
@@ -354,8 +358,7 @@ def test_ra3_secret_in_desc_lowers_score() -> None:
         {
             "name": "api_tool",
             "description": (
-                "Call the API. api_key=ABCDEF1234567890 "
-                "OAuth bearer. rate_limit enforced."
+                "Call the API. api_key=ABCDEF1234567890 OAuth bearer. rate_limit enforced."
             ),
         }
     ]
@@ -404,7 +407,14 @@ def test_posture_score_rules_order() -> None:
     """Rules appear in rubric order."""
     ps = _score(WORST_TOOLS)
     names = [r.rule for r in ps.rules]
-    assert names == ["trifecta_path", "poisoning", "rug_pull", "secret_in_desc", "no_auth", "no_ratelimit"]
+    assert names == [
+        "trifecta_path",
+        "poisoning",
+        "rug_pull",
+        "secret_in_desc",
+        "no_auth",
+        "no_ratelimit",
+    ]
 
 
 def test_posture_score_all_rules_present() -> None:
@@ -469,8 +479,7 @@ def test_single_tool_all_safe_keywords() -> None:
         {
             "name": "health",
             "description": (
-                "Service health status. OAuth bearer required. "
-                "rate_limit: 60 req/min."
+                "Service health status. OAuth bearer required. rate_limit: 60 req/min."
             ),
         }
     ]
