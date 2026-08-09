@@ -120,12 +120,15 @@ def test_tag_tool_sees_untrusted_content_keyword(description: str, expected_valu
     assert profile.sees_untrusted_content.value is expected_value
 
 
-def test_tag_tool_suc_network_cap_alone_is_unknown() -> None:
-    """network cap without web/url/html keywords → unknown (may fetch external content)."""
+def test_tag_tool_suc_network_cap_alone_is_false() -> None:
+    """network cap without inbound-content indicators → False (KCH-27: cap fallbacks removed).
+
+    The old behaviour (network cap → unknown) caused 18 FPs in KCH-7.  Outbound API tools
+    such as 'api_call' do not ingest untrusted content, so suc must be False.
+    """
     node = _make_node("api_call", "Make an API request.", caps=["network"])
     profile = tag_tool(node)
-    # "api" doesn't match _SUD_RE; network cap alone → unknown
-    assert profile.sees_untrusted_content.value == "unknown"
+    assert profile.sees_untrusted_content.value is False
 
 
 # ---------------------------------------------------------------------------

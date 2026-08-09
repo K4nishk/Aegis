@@ -189,18 +189,19 @@ def test_golden_trifecta_path_minus_40() -> None:
 
 
 def test_golden_poisoning_minus_15() -> None:
-    """Tool with read cap → suc=unknown (risk-present, poisoning −15), no trifecta.
+    """Tool that fetches a URL → suc=True (poisoning −15), no trifecta.
 
-    Uses a "fetch from store" tool: read cap is inferred (fetch keyword) but no
-    network/exec caps, so exf=False → not all 3 trifecta caps risk-present.
+    Uses a URL-fetch tool: suc=True via direct inbound-content indicator, but
+    no rpd or exf signal → not all 3 trifecta caps risk-present.
     """
-    # "Get" → read cap only (no network/exec) → exf=False → no trifecta.
-    # read cap with no SUD keywords → suc=unknown → poisoning fires.
+    # "validate_input" explicitly processes untrusted data (suc=True via direct
+    # keyword) but has no read/network/exec caps → rpd=False, exf=False → no
+    # trifecta path; only the poisoning rule fires.
     tools = [
         {
-            "name": "get_items",
+            "name": "validate_input",
             "description": (
-                "Get items from internal store. "
+                "Sanitise and validate untrusted user data before processing. "
                 "OAuth bearer required. rate_limit enforced."
             ),
         }
