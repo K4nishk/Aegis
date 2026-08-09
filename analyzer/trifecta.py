@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from itertools import permutations
 from typing import Literal
 
-from parser.mcp import ParseResult, ToolEdge, ToolNode
+from parser.mcp import ToolEdge, ToolGraph, ToolNode
 
 # ---------------------------------------------------------------------------
 # Types
@@ -132,13 +132,33 @@ _RPD_RE = re.compile(
     re.I,
 )
 
-_SUD_RE = re.compile(
+# Unambiguously-inbound content indicators: the tool fetches or receives content
+# from outside the caller's control (web fetch, injection-prone messages, etc.).
+# Deliberately excludes email/slack/message — those terms appear on outbound
+# tools too (send_email, post_message) and caused 18 false positives in KCH-7.
+_SUD_DIRECT_RE = re.compile(
     r"\b("
     r"url|uri|webpage|html|scrape|scraper|browse|browser|"
-    r"email|e.?mail|message|chat|slack|discord|tweet|"
-    r"user.?input|user.?message|untrusted|web.?content|"
-    r"page|rss|feed|crawl|spider"
+    r"untrusted|user.?input|user.?message|web.?content|"
+    r"inbound|incoming|phishing|"
+    r"rss|feed|crawl|spider"
     r")\b",
+    re.I,
+)
+
+# Web-search tools return external result bodies — an injection vector regardless
+# of whether typical inbound-read verbs appear in the description.
+_SUD_WEB_SEARCH_RE = re.compile(r"\bweb.?search\b", re.I)
+
+# Inbound-read verbs: the tool is *reading* content, not sending it.
+_SUD_READ_VERB_RE = re.compile(
+    r"\b(read|retrieve|get|fetch|forward|relay)\b", re.I
+)
+
+# Message/channel/content nouns that, when paired with an inbound-read verb,
+# signal that the tool ingests content from an external actor.
+_SUD_MSG_NOUN_RE = re.compile(
+    r"\b(message|channel|dm|thread|issue|comment|conversation|mail|inbox)\b",
     re.I,
 )
 
@@ -210,29 +230,40 @@ def tag_tool(node: ToolNode) -> SecurityProfile:
         rpd = CapTag("reads_private_data", False, 0.8, [])
 
     # ------------------------------------------------------------------ suc --
-    suc_kw = list({m.lower() for m in _SUD_RE.findall(text)})
-    if suc_kw:
+    # Priority 1: unambiguous inbound-content indicator in name/description/schema.
+    suc_direct = sorted({m.lower() for m in _SUD_DIRECT_RE.findall(text)})
+    # Priority 2: web-search result body (always external content).
+    has_web_search = bool(_SUD_WEB_SEARCH_RE.search(text))
+    # Priority 3: inbound-read verb + message/channel noun → reads external messages.
+    has_read_verb = bool(_SUD_READ_VERB_RE.search(text))
+    has_msg_noun = bool(_SUD_MSG_NOUN_RE.search(text))
+
+    if suc_direct:
         suc = CapTag(
             "sees_untrusted_content",
             True,
             0.9,
-            [f"keyword match: {', '.join(sorted(suc_kw))}"],
+            [f"inbound content indicator: {', '.join(suc_direct)}"],
         )
-    elif "network" in caps:
+    elif has_web_search:
         suc = CapTag(
             "sees_untrusted_content",
-            "unknown",
-            0.45,
-            ["network capability; may fetch attacker-controlled content"],
+            True,
+            0.85,
+            ["web search result body exposes external content"],
         )
-    elif "read" in caps:
+    elif has_read_verb and has_msg_noun:
+        verbs = sorted({m.lower() for m in _SUD_READ_VERB_RE.findall(text)})
+        nouns = sorted({m.lower() for m in _SUD_MSG_NOUN_RE.findall(text)})
         suc = CapTag(
             "sees_untrusted_content",
-            "unknown",
-            0.30,
-            ["has read capability; input source may be untrusted"],
+            True,
+            0.85,
+            [f"reads {'+'.join(nouns)} via {'+'.join(verbs)}: external content exposure"],
         )
     else:
+        # No evidence of inbound content ingestion; capability fallbacks omitted
+        # (network/read caps appear on outbound-only tools and caused 18 FPs — KCH-27).
         suc = CapTag("sees_untrusted_content", False, 0.8, [])
 
     # ------------------------------------------------------------------ exf --
@@ -461,7 +492,7 @@ def _detect_trifecta_paths(
 # ---------------------------------------------------------------------------
 
 
-def analyze_trifecta(result: ParseResult) -> TrifectaResult:
+def analyze_trifecta(result: ToolGraph) -> TrifectaResult:
     """Tag all nodes in *result* with security caps and detect trifecta paths.
 
     Args:

@@ -148,12 +148,21 @@ def _write_falsification_md(report: EvalReport) -> None:
         private, personal, dotenv) are precise; the `read+fs` fallback heuristic provides
         coverage for filesystem tools that lack explicit privacy keywords.
 
-        ### sees_untrusted_content
-        Lower precision: email/Slack/messaging keywords (`email`, `slack`, `message`)
-        are directionally ambiguous — they fire on outbound tools (send_email, post_message)
-        as well as inbound tools (read_inbox, read_channel). The `read`-cap fallback also
-        creates false positives for internal-only readers.
-        Recall is perfect because the fail-safe `unknown` path catches all network-touching tools.
+        ### sees_untrusted_content (KCH-27 rewrite)
+        Previous (KCH-7): `email`, `slack`, `message` keywords were directionally
+        ambiguous — firing on outbound tools (send_email, post_message) as well as
+        inbound tools. The `read`/`network` cap fallbacks added further false positives.
+        18 FPs against 10 TPs (35.7% precision).
+
+        KCH-27 fix: replaced `_SUD_RE` with three targeted signals:
+        1. Unambiguous inbound-content keywords (`url`, `html`, `browse`, `untrusted`,
+           `inbox`, `phishing`, `rss`, `feed`, …) — no directionally ambiguous terms.
+        2. Web-search pattern (`web_search` / `web search`) — search result bodies expose
+           external content regardless of read-verb presence.
+        3. Inbound-read verb (`read`, `retrieve`, `get`, `fetch`, `forward`, `relay`) +
+           message/channel noun (`message`, `channel`, `dm`, `thread`, `issue`, …) —
+           distinguishes reading messages from sending them.
+        Cap-based fallbacks (`read`/`network` cap → `unknown`) removed entirely for `suc`.
 
         ### can_exfiltrate
         Good precision. Recall is imperfect for API-write tools that use push/commit/create
@@ -168,6 +177,31 @@ def _write_falsification_md(report: EvalReport) -> None:
         | known-bad/inject_and_exfil | rpd, suc, exf | none |
         | known-bad/phishing_tool | rpd, suc, exf | none |
         _(Populated from test run; see seeded_bad_missed field above for any failures.)_
+
+        ## KCH-27: Previously-false-positive nodes for sees_untrusted_content
+
+        All 18 prior FPs are now correctly classified False. Root cause and fix per node:
+
+        | Node | Why it was a FP | Why it is now TN |
+        |------|-----------------|-----------------|
+        | filesystem/read_file | `read` cap fallback | cap fallbacks removed for suc |
+        | filesystem/list_directory | `read` cap fallback | cap fallbacks removed |
+        | github/push_files | `message` keyword in schema | ambiguous nouns require read verb |
+        | github/search_repositories | `page` keyword in schema | `page` removed from suc keywords |
+        | brave-search/brave_local_search | `read` cap fallback | cap fallbacks removed |
+        | agent-runtime/get_credentials | `read` cap fallback | cap fallbacks removed |
+        | agent-runtime/post_to_webhook | `network` cap fallback | cap fallbacks removed |
+        | email-server/send_email | `email`+`message` keywords | ambiguous terms removed from suc |
+        | email-server/get_contact_info | `email` keyword | ambiguous terms removed from suc |
+        | email-server/create_draft | `email`+`message` keywords | ambiguous terms removed from suc |
+        | email-server/search_emails | `email`+`message` keywords | ambiguous terms removed; `search` not a read verb |
+        | email-server/delete_email | `email`+`message` keywords | ambiguous terms removed from suc |
+        | slack-mcp/post_message | `message`+`slack` keywords | ambiguous terms removed; `post` not a read verb |
+        | slack-mcp/list_users | `slack` keyword | ambiguous terms removed from suc |
+        | slack-mcp/upload_file | `message`+`slack` keywords | ambiguous terms removed; `upload` not a read verb |
+        | slack-mcp/create_channel | `slack` keyword | ambiguous terms removed from suc |
+        | known-bad/steal_credentials | `network` cap fallback | cap fallbacks removed |
+        | known-bad/env_reader | `read` cap fallback | cap fallbacks removed |
         """)
 
     _FALSIFICATION_MD.parent.mkdir(parents=True, exist_ok=True)
