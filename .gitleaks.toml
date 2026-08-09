@@ -1,0 +1,24 @@
+# .gitleaks.toml — gitleaks configuration for Aegis (KCH-22)
+#
+# Only allowlists for intentional test fixtures appear here.
+# All real secrets must live in environment variables (never committed).
+#
+# To run manually:  gitleaks detect --source . --log-opts="--all"
+# To run in CI:     see .github/workflows/ci.yml (secret-scan job)
+
+title = "Aegis gitleaks config"
+
+[allowlist]
+description = "Test fixtures that contain intentionally fake/dummy secret-shaped strings"
+
+# tests/analyzer/test_posture.py contains a deliberately fake API key string
+# ("ABCDEF1234567890") to exercise the secret_in_desc posture rule — it is not
+# a real credential and cannot be rotated.
+#
+# tests/api/test_security_events.py triggers gitleaks on the pattern
+# `bad_key", correlation_id=` which is a structlog test assertion, not a secret.
+
+paths = [
+    "tests/analyzer/test_posture.py",
+    "tests/api/test_security_events.py",
+]

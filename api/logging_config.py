@@ -19,6 +19,8 @@ import os
 
 import structlog
 
+from api.redact import structlog_redact_processor
+
 
 def configure_structlog() -> None:
     """Configure structlog for the current environment.
@@ -35,6 +37,8 @@ def configure_structlog() -> None:
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
         structlog.processors.ExceptionRenderer(),
+        # KCH-22: redact secret values before any renderer emits them.
+        structlog_redact_processor,
     ]
 
     if json_mode:
