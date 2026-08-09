@@ -17,6 +17,7 @@ from api.app import create_app
 @pytest.fixture()
 def client():
     os.environ.pop("DATABASE_URL", None)
+    # AEGIS_DEV_NO_AUTH=1 is set by conftest._api_dev_no_auth autouse fixture (KCH-30)
     app = create_app()
     return TestClient(app, raise_server_exceptions=False)
 

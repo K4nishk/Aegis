@@ -27,6 +27,7 @@ _CLAUDE_DESKTOP = _FIXTURES / "claude_desktop.json"
 
 def _make_client(dsn: str | None = None) -> TestClient:
     """Create a TestClient with optional DATABASE_URL override."""
+    # AEGIS_DEV_NO_AUTH=1 is set by conftest._api_dev_no_auth autouse fixture (KCH-30)
     env_patch: dict[str, str] = {}
     if dsn:
         env_patch["DATABASE_URL"] = dsn
@@ -110,8 +111,9 @@ class TestPostScansNoDB:
         assert resp.headers["x-correlation-id"] == cid
 
     def test_api_key_rejected_when_env_set(self):
-        """Requests with wrong API key are rejected 401."""
+        """Requests with no/wrong API key are rejected 401 (KCH-30: dev mode off)."""
         os.environ["AEGIS_API_KEY"] = "supersecret"
+        os.environ.pop("AEGIS_DEV_NO_AUTH", None)  # disable dev mode so auth is enforced
         try:
             app = create_app()
             client = TestClient(app, raise_server_exceptions=False)

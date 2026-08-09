@@ -1,4 +1,4 @@
-"""api/app.py — FastAPI application factory + CorrelationIdMiddleware (KCH-11)."""
+"""api/app.py — FastAPI application factory + CorrelationIdMiddleware (KCH-11/KCH-30)."""
 
 from __future__ import annotations
 
@@ -6,12 +6,14 @@ import json
 import os
 import uuid
 from collections.abc import Callable
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from api.deps import check_auth_config
 from api.routes import router
 
 
@@ -94,6 +96,13 @@ def _write_audit_log(
 # ---------------------------------------------------------------------------
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI):  # noqa: ARG001
+    """Fail closed at startup: refuse to serve if auth is misconfigured (KCH-30)."""
+    check_auth_config()
+    yield
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Aegis Security API",
@@ -102,6 +111,7 @@ def create_app() -> FastAPI:
             "AI Bill of Materials, and CI/CD gate."
         ),
         version="0.1.0",
+        lifespan=_lifespan,
     )
     app.add_middleware(CorrelationIdMiddleware)
     app.include_router(router)

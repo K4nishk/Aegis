@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,19 @@ _MIGRATION_FILES = [
     "V4__add_server_name.up.sql",
     "V5__add_owner_rls.up.sql",
 ]
+
+@pytest.fixture(autouse=True)
+def _api_dev_no_auth():
+    """Set AEGIS_DEV_NO_AUTH=1 for all API tests so create_app() succeeds (KCH-30).
+
+    Tests that need to test auth config explicitly (test_auth_failclosed.py)
+    override this by popping the variable in their own autouse _clean_env fixture,
+    which runs after this one due to request-scope ordering.
+    """
+    os.environ["AEGIS_DEV_NO_AUTH"] = "1"
+    yield
+    os.environ.pop("AEGIS_DEV_NO_AUTH", None)
+
 
 _TEST_DB = "aegis_kch17_test"
 _ADMIN_DSN = "postgresql://ishq_kan@localhost:5432/postgres"
