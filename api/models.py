@@ -1,10 +1,16 @@
-"""api/models.py — Pydantic request/response schemas (KCH-11)."""
+"""api/models.py — Pydantic request/response schemas (KCH-11/KCH-18).
+
+KCH-18: every request model uses extra='forbid' (whitelist fields) so hostile
+extra-field payloads are rejected with HTTP 422. Price/role/permission fields
+are never accepted from the client — those are always server-derived.
+"""
 
 from __future__ import annotations
 
+import uuid
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # ---------------------------------------------------------------------------
 # POST /scans
@@ -12,8 +18,16 @@ from pydantic import BaseModel, Field
 
 
 class ScanRequest(BaseModel):
+    """Strict schema for POST /scans. Extra fields are rejected (422)."""
+
+    model_config = ConfigDict(extra="forbid")
+
     mcp_json: dict[str, Any] = Field(..., description="Raw MCP config object")
-    label: str | None = Field(None, description="Human-readable scan label")
+    label: str | None = Field(
+        None,
+        max_length=256,
+        description="Human-readable scan label (optional, ≤256 chars)",
+    )
 
 
 class ScanResponse(BaseModel):
@@ -75,8 +89,21 @@ class AiBomResponse(BaseModel):
 
 
 class GateRequest(BaseModel):
-    scan_id: str
-    min_score: int = Field(70, ge=0, le=100)
+    """Strict schema for POST /gate. Extra fields are rejected (422)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    scan_id: str = Field(..., description="UUID of a completed scan run")
+    min_score: int = Field(70, ge=0, le=100, description="Pass threshold (0–100)")
+
+    @field_validator("scan_id")
+    @classmethod
+    def _validate_scan_id(cls, v: str) -> str:
+        try:
+            uuid.UUID(v)
+        except ValueError as exc:
+            raise ValueError("scan_id must be a valid UUID") from exc
+        return v
 
 
 class GateResponse(BaseModel):
