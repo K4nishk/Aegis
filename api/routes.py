@@ -27,11 +27,19 @@ from fastapi.responses import HTMLResponse, PlainTextResponse
 from analyzer.posture import score_posture
 from analyzer.trifecta import analyze_trifecta
 from api.deps import get_authed_db, get_current_user
+from api.metrics import query_q1, query_q2, query_q3
+from api.metrics_html import render_metrics_html
 from api.models import (
     AiBomComponent,
     AiBomResponse,
     GateRequest,
     GateResponse,
+    MetricsDashboard,
+    Q1TrifectaMetricsOut,
+    Q2DailyAvgOut,
+    Q2PostureMetricsOut,
+    Q3CapMetricsOut,
+    Q3EvalMetricsOut,
     ReportResponse,
     RuleResultOut,
     ScanRequest,
@@ -58,7 +66,9 @@ def _iso(dt: datetime) -> str:
 # ---------------------------------------------------------------------------
 
 
-@router.post("/scans", response_model=ScanResponse, status_code=201, dependencies=[Depends(scans_rate_limit)])  # noqa: B008
+@router.post(
+    "/scans", response_model=ScanResponse, status_code=201, dependencies=[Depends(scans_rate_limit)]
+)  # noqa: B008
 async def create_scan(
     body: ScanRequest,
     request: Request,
@@ -100,9 +110,7 @@ async def create_scan(
             }
             for f in trifecta.findings
         ],
-        "trifecta_profiles": {
-            k: v.as_dict() for k, v in trifecta.profiles.items()
-        },
+        "trifecta_profiles": {k: v.as_dict() for k, v in trifecta.profiles.items()},
         "warnings": graph.warnings,
     }
 
@@ -387,6 +395,98 @@ async def get_aibom(
 # ---------------------------------------------------------------------------
 # POST /gate
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# GET /metrics
+# ---------------------------------------------------------------------------
+
+
+@router.get("/metrics", response_model=MetricsDashboard)
+async def get_metrics(
+    request: Request,
+    window_days: int = Query(30, ge=1, le=365),
+    fmt: str = Query("json", pattern="^(json|html)$"),
+    db: Any = Depends(get_authed_db),  # noqa: B008
+) -> Any:
+    """Return Q1-Q3 metrics dashboard.
+
+    Q3 (eval harness) always runs.  Q1/Q2 require a DB connection; when DB is
+    unavailable those fields are omitted (None) and a zero-placeholder is
+    included in the JSON response.
+    """
+    from datetime import UTC, datetime
+
+    generated_at = datetime.now(tz=UTC).isoformat()
+
+    # Q3 always available
+    q3_raw = query_q3()
+    q3_out = Q3EvalMetricsOut(
+        macro_f1=q3_raw.macro_f1,
+        macro_precision=q3_raw.macro_precision,
+        macro_recall=q3_raw.macro_recall,
+        ambiguity_rate=q3_raw.ambiguity_rate,
+        n_tools=q3_raw.n_tools,
+        per_cap=[
+            Q3CapMetricsOut(
+                cap=c.cap,
+                precision=c.precision,
+                recall=c.recall,
+                f1=c.f1,
+                tp=c.tp,
+                fp=c.fp,
+                fn=c.fn,
+                tn=c.tn,
+            )
+            for c in q3_raw.per_cap
+        ],
+        seeded_bad_missed=q3_raw.seeded_bad_missed,
+        kill_f1=q3_raw.kill_f1,
+        kill_precision=q3_raw.kill_precision,
+        kill_ambiguity=q3_raw.kill_ambiguity,
+        kill_seeded_bad=q3_raw.kill_seeded_bad,
+        any_kill=q3_raw.any_kill,
+    )
+
+    q1_out: Q1TrifectaMetricsOut | None = None
+    q2_out: Q2PostureMetricsOut | None = None
+
+    if db is not None:
+        q1_raw = query_q1(db)
+        q1_out = Q1TrifectaMetricsOut(
+            total_scans=q1_raw.total_scans,
+            scans_with_trifecta=q1_raw.scans_with_trifecta,
+            pct_with_trifecta=q1_raw.pct_with_trifecta,
+            total_trifecta_findings=q1_raw.total_trifecta_findings,
+            avg_findings_per_scan=q1_raw.avg_findings_per_scan,
+        )
+
+        q2_raw = query_q2(db, window_days=window_days)
+        q2_out = Q2PostureMetricsOut(
+            window_days=q2_raw.window_days,
+            avg_score=q2_raw.avg_score,
+            min_score=q2_raw.min_score,
+            max_score=q2_raw.max_score,
+            scan_count=q2_raw.scan_count,
+            daily=[
+                Q2DailyAvgOut(date=d.date, avg_score=d.avg_score, scan_count=d.scan_count)
+                for d in q2_raw.daily
+            ],
+        )
+
+    dashboard = MetricsDashboard(
+        generated_at=generated_at,
+        window_days=window_days,
+        q1=q1_out,
+        q2=q2_out,
+        q3=q3_out,
+    )
+
+    if fmt == "html":
+        html = render_metrics_html(dashboard.model_dump())
+        return HTMLResponse(content=html)
+
+    return dashboard
 
 
 @router.post("/gate", response_model=GateResponse, dependencies=[Depends(gate_rate_limit)])  # noqa: B008
