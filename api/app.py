@@ -1,4 +1,4 @@
-"""api/app.py — FastAPI application factory + CorrelationIdMiddleware (KCH-11/KCH-30)."""
+"""api/app.py — FastAPI application factory + CorrelationIdMiddleware (KCH-11/KCH-30/KCH-21)."""
 
 from __future__ import annotations
 
@@ -14,11 +14,23 @@ from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from api.deps import check_auth_config
+from api.logging_config import configure_structlog
 from api.routes import router
+from api.security_events import set_request_context
 
 
 def _utcnow() -> datetime:
     return datetime.now(tz=UTC)
+
+
+def _client_ip(request: Request) -> str:
+    """Extract the real client IP (X-Forwarded-For first, then direct peer)."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    if request.client:
+        return request.client.host
+    return "unknown"
 
 
 # ---------------------------------------------------------------------------
@@ -27,12 +39,17 @@ def _utcnow() -> datetime:
 
 
 class CorrelationIdMiddleware(BaseHTTPMiddleware):
-    """Propagate X-Correlation-Id and append an audit_log row for every request."""
+    """Propagate X-Correlation-Id, capture client IP, and write an audit_log row."""
 
     async def dispatch(self, request: Request, call_next: Callable[..., Any]) -> Response:
         correlation_id = request.headers.get("X-Correlation-Id") or str(uuid.uuid4())
         request.state.correlation_id = correlation_id
+        client_ip = _client_ip(request)
+        request.state.client_ip = client_ip
         request.state.audit_resource_id = None  # routes may overwrite
+
+        # Propagate request context to auth dependencies via contextvars.
+        set_request_context(ip=client_ip, correlation_id=correlation_id)
 
         response: Response = await call_next(request)
         response.headers["X-Correlation-Id"] = correlation_id
@@ -96,9 +113,40 @@ def _write_audit_log(
 # ---------------------------------------------------------------------------
 
 
+def _init_sentry() -> None:
+    """Initialise Sentry if SENTRY_DSN is set (KCH-21).
+
+    Skipped silently when the env var is absent so local dev / CI work without
+    a real Sentry project.  In production the DSN must be injected via the
+    deployment environment (EC2 user-data, ECS task definition, etc.).
+    """
+    dsn = os.environ.get("SENTRY_DSN")
+    if not dsn:
+        return
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.starlette import StarletteIntegration
+
+        sentry_sdk.init(
+            dsn=dsn,
+            integrations=[StarletteIntegration(), FastApiIntegration()],
+            # Only send errors (not transactions) unless explicitly configured.
+            traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0")),
+            environment=os.environ.get("AEGIS_ENV", "production"),
+        )
+    except Exception:  # noqa: BLE001
+        pass  # Sentry init failure must never prevent the API from starting.
+
+
 @asynccontextmanager
 async def _lifespan(app: FastAPI):  # noqa: ARG001
-    """Fail closed at startup: refuse to serve if auth is misconfigured (KCH-30)."""
+    """Fail closed at startup: refuse to serve if auth is misconfigured (KCH-30).
+
+    Also initialises structlog and Sentry (KCH-21).
+    """
+    configure_structlog()
+    _init_sentry()
     check_auth_config()
     yield
 

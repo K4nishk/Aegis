@@ -1,4 +1,4 @@
-"""api/deps.py — FastAPI dependencies: DB connection, API-key auth (KCH-11/KCH-17/KCH-30)."""
+"""api/deps.py — FastAPI dependencies: DB connection, API-key auth (KCH-11/KCH-17/KCH-30/KCH-21)."""
 
 from __future__ import annotations
 
@@ -63,19 +63,40 @@ async def get_current_user(
     2. AEGIS_API_KEY set, key matches (constant-time compare) → proceed.
     3. Key missing or wrong → 401 (security event logged).
     4. AEGIS_API_KEY unset and dev mode off → 401 (startup check should catch this first).
+
+    IP and correlation_id are read from per-request contextvars set by
+    CorrelationIdMiddleware (KCH-21).  When called directly in tests the
+    contextvars fall back to their defaults ("unknown", None).
     """
+    from api.security_events import (
+        get_request_correlation_id,
+        get_request_ip,
+        log_auth_failure,
+    )
+
     dev_no_auth = os.environ.get("AEGIS_DEV_NO_AUTH") == "1"
     configured_key = os.environ.get("AEGIS_API_KEY")
+
+    ip = get_request_ip()
+    correlation_id = get_request_correlation_id()
+    actor = (key or "")[:64] or "anonymous"
 
     if not dev_no_auth:
         if not configured_key:
             # Misconfiguration: startup check should have prevented this.
             _log.warning("security_event=auth_failure reason=no_key_configured")
+            log_auth_failure(ip=ip, actor=actor, reason="no_key_configured", correlation_id=correlation_id)
             raise HTTPException(status_code=401, detail="Invalid or missing API key")
         if not secrets.compare_digest(key or "", configured_key):
             _log.warning(
                 "security_event=auth_failure reason=bad_key key_present=%s",
                 key is not None,
+            )
+            log_auth_failure(
+                ip=ip,
+                actor=actor,
+                reason="bad_key",
+                correlation_id=correlation_id,
             )
             raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
