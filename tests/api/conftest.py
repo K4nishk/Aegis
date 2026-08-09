@@ -12,9 +12,10 @@ _MIGRATION_FILES = [
     "V2__add_def_hash.up.sql",
     "V3__add_security_caps.up.sql",
     "V4__add_server_name.up.sql",
+    "V5__add_owner_rls.up.sql",
 ]
 
-_TEST_DB = "aegis_kch11_test"
+_TEST_DB = "aegis_kch17_test"
 _ADMIN_DSN = "postgresql://ishq_kan@localhost:5432/postgres"
 _TEST_DSN = f"postgresql://ishq_kan@localhost:5432/{_TEST_DB}"
 
