@@ -98,9 +98,7 @@ def _write_audit_log(
                     f"{method} {path}",
                     "api_request",
                     resource_id,
-                    json.dumps(
-                        {"status_code": status_code, "correlation_id": correlation_id}
-                    ),
+                    json.dumps({"status_code": status_code, "correlation_id": correlation_id}),
                 ),
             )
         conn.close()
@@ -163,6 +161,49 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(CorrelationIdMiddleware)
     app.include_router(router)
+
+    # ---------------------------------------------------------------------------
+    # /health — unauthenticated liveness + readiness probe (KCH-33)
+    # Must not require X-API-Key.  Does not leak version or config detail.
+    # ---------------------------------------------------------------------------
+
+    from fastapi.responses import JSONResponse
+
+    @app.get("/health", include_in_schema=False)
+    async def health() -> Any:
+        """Return DB and Redis reachability. No auth required."""
+        status: dict[str, str] = {"status": "ok", "db": "ok", "redis": "ok"}
+
+        # --- DB check ---
+        dsn = os.environ.get("DATABASE_URL")
+        if not dsn:
+            status["db"] = "not_configured"
+        else:
+            try:
+                import psycopg2  # type: ignore[import-untyped]
+
+                conn = psycopg2.connect(dsn, connect_timeout=3)
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1")
+                conn.close()
+            except Exception:
+                status["db"] = "error"
+                status["status"] = "degraded"
+
+        # --- Redis check ---
+        redis_url = os.environ.get("AEGIS_REDIS_URL", "redis://localhost:6379")
+        try:
+            import redis as _redis
+
+            r = _redis.from_url(redis_url, socket_connect_timeout=3)
+            r.ping()
+        except Exception:
+            status["redis"] = "error"
+            status["status"] = "degraded"
+
+        http_code = 503 if status["status"] != "ok" else 200
+        return JSONResponse(content=status, status_code=http_code)
+
     return app
 
 
