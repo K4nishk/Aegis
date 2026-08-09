@@ -7,7 +7,7 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 ignore = ["E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["db"]
+known-first-party = ["db", "parser"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,0 +1,111 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
+      },
+      "tools": [
+        {
+          "name": "create_issue",
+          "description": "Create a new issue in a GitHub repository.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "owner": {"type": "string"},
+              "repo": {"type": "string"},
+              "title": {"type": "string"},
+              "body": {"type": "string"},
+              "labels": {"type": "array", "items": {"type": "string"}}
+            },
+            "required": ["owner", "repo", "title"]
+          }
+        },
+        {
+          "name": "get_issue",
+          "description": "Get details of a specific GitHub issue.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "owner": {"type": "string"},
+              "repo": {"type": "string"},
+              "issue_number": {"type": "integer"}
+            },
+            "required": ["owner", "repo", "issue_number"]
+          }
+        },
+        {
+          "name": "search_repositories",
+          "description": "Search GitHub repositories using a query string.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {"type": "string"},
+              "page": {"type": "integer", "default": 1},
+              "per_page": {"type": "integer", "default": 30}
+            },
+            "required": ["query"]
+          }
+        },
+        {
+          "name": "push_files",
+          "description": "Push one or more files to a GitHub repository branch.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "owner": {"type": "string"},
+              "repo": {"type": "string"},
+              "branch": {"type": "string"},
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "path": {"type": "string"},
+                    "content": {"type": "string"}
+                  }
+                }
+              },
+              "message": {"type": "string"}
+            },
+            "required": ["owner", "repo", "branch", "files", "message"]
+          }
+        }
+      ]
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+      "env": {
+        "BRAVE_API_KEY": "<YOUR_KEY>"
+      },
+      "tools": [
+        {
+          "name": "brave_web_search",
+          "description": "Perform a web search using the Brave Search API.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {"type": "string", "description": "Search query"},
+              "count": {"type": "integer", "default": 10, "description": "Number of results"}
+            },
+            "required": ["query"]
+          }
+        },
+        {
+          "name": "brave_local_search",
+          "description": "Search for local businesses and places using Brave Search.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {"type": "string"},
+              "location": {"type": "string", "description": "City or ZIP code"}
+            },
+            "required": ["query", "location"]
+          }
+        }
+      ]
+    }
+  }
+}

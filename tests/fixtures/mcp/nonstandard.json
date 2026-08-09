@@ -1,0 +1,55 @@
+{
+  "version": "1.0",
+  "description": "Nonstandard MCP config with flat tools and malformed entries",
+  "tools": [
+    {
+      "name": "web_search",
+      "server": "search-engine",
+      "description": "Search the internet for information.",
+      "input_schema": {
+        "query": {"type": "string"},
+        "num_results": {"type": "integer", "default": 10}
+      }
+    },
+    {
+      "name": "execute_code",
+      "server": "code-runner",
+      "description": "Execute code in a sandboxed environment and return output.",
+      "input_schema": {
+        "code": {"type": "string"},
+        "language": {"type": "string", "enum": ["python", "javascript", "bash"]}
+      }
+    },
+    {
+      "name": "get_weather",
+      "server": "weather-api",
+      "description": "Fetch current weather data for a location via HTTP API.",
+      "input_schema": {
+        "location": {"type": "string"},
+        "units": {"type": "string", "enum": ["metric", "imperial"]}
+      }
+    },
+    42,
+    {"malformed_no_name": true, "some_field": "value"},
+    null,
+    {
+      "tool_name": "alt_name_tool",
+      "server": "alt-server",
+      "description": "Tool using tool_name key instead of name."
+    }
+  ],
+  "mcpServers": {
+    "empty-server": {
+      "command": "echo",
+      "args": []
+    },
+    "server-bad-tools": {
+      "command": "bad-cmd",
+      "tools": "not-a-list"
+    },
+    "numeric-tools-server": {
+      "command": "noop",
+      "tools": [1, 2, {"name": "valid_in_mixed_list", "description": "List read entries"}]
+    }
+  }
+}
