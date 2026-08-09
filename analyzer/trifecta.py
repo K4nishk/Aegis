@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from itertools import permutations
 from typing import Literal
 
-from parser.mcp import ParseResult, ToolEdge, ToolNode
+from parser.mcp import ToolEdge, ToolGraph, ToolNode
 
 # ---------------------------------------------------------------------------
 # Types
@@ -492,7 +492,7 @@ def _detect_trifecta_paths(
 # ---------------------------------------------------------------------------
 
 
-def analyze_trifecta(result: ParseResult) -> TrifectaResult:
+def analyze_trifecta(result: ToolGraph) -> TrifectaResult:
     """Tag all nodes in *result* with security caps and detect trifecta paths.
 
     Args:
