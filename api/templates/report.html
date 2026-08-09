@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aegis Security Report — {{ scan_id[:8] }}</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+  .banner { background: #7c3aed; color: #fff; text-align: center; padding: 10px 16px; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .meta { font-size: 12px; color: #94a3b8; margin-bottom: 32px; }
+  .meta span { margin-right: 16px; }
+  /* Score badge */
+  .score-block { display: flex; align-items: center; gap: 24px; margin-bottom: 36px; }
+  .score-circle { width: 96px; height: 96px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; border: 4px solid; flex-shrink: 0; }
+  .score-circle.critical { border-color: #ef4444; color: #ef4444; }
+  .score-circle.high    { border-color: #f97316; color: #f97316; }
+  .score-circle.medium  { border-color: #eab308; color: #eab308; }
+  .score-circle.good    { border-color: #22c55e; color: #22c55e; }
+  .score-label { font-size: 14px; color: #94a3b8; margin-top: 4px; }
+  .score-rules { font-size: 13px; color: #cbd5e1; }
+  .score-rules .none { color: #22c55e; }
+  /* Section */
+  .section { margin-bottom: 32px; }
+  .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 12px; border-bottom: 1px solid #1e293b; padding-bottom: 6px; }
+  /* Findings table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 10px; background: #1e293b; color: #94a3b8; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  td { padding: 10px 10px; border-bottom: 1px solid #1e293b; vertical-align: top; }
+  tr:hover td { background: #1a2235; }
+  /* Severity badges */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
+  .badge.CRITICAL { background: #450a0a; color: #fca5a5; }
+  .badge.HIGH     { background: #431407; color: #fdba74; }
+  .badge.MEDIUM   { background: #422006; color: #fde68a; }
+  .badge.LOW      { background: #052e16; color: #86efac; }
+  .badge.OK       { background: #052e16; color: #86efac; }
+  /* Evidence list */
+  .evidence { margin-top: 4px; }
+  .evidence li { list-style: none; font-family: monospace; font-size: 11px; color: #94a3b8; margin-top: 2px; padding-left: 12px; position: relative; }
+  .evidence li::before { content: "›"; position: absolute; left: 0; color: #475569; }
+  /* Trifecta path */
+  .trifecta-path { font-family: monospace; font-size: 12px; color: #c084fc; background: #1e1b4b; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #7c3aed; margin-bottom: 8px; word-break: break-all; }
+  /* AI-BOM */
+  .aibom-link { display: inline-block; padding: 8px 16px; background: #1e293b; border: 1px solid #334155; border-radius: 6px; color: #7dd3fc; text-decoration: none; font-size: 13px; }
+  .aibom-link:hover { background: #263548; }
+  /* Footer */
+  footer { margin-top: 48px; font-size: 11px; color: #475569; text-align: center; }
+  /* OWASP ref */
+  .owasp { font-size: 11px; color: #64748b; margin-top: 2px; }
+  /* Empty state */
+  .empty { color: #475569; font-size: 13px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="banner">⚠ PROTOTYPE / Proof-of-Concept — Aegis v0.1 · Not for production security decisions without human review</div>
+
+<div class="container">
+  <h1>Aegis Security Report</h1>
+  <div class="meta">
+    <span>Scan: <code>{{ scan_id }}</code></span>
+    <span>Label: {{ label or "—" }}</span>
+    {% if created_at %}<span>Created: {{ created_at }}</span>{% endif %}
+    {% if completed_at %}<span>Completed: {{ completed_at }}</span>{% endif %}
+  </div>
+
+  <!-- Score -->
+  <div class="score-block">
+    <div class="score-circle {{ score_class }}">{{ score }}</div>
+    <div>
+      <div style="font-size:18px; font-weight:700;">Posture Score: {{ score }}/100</div>
+      <div class="score-label">{{ score_label }}</div>
+      <div class="score-rules" style="margin-top:8px;">
+        {% if triggered_rules %}
+          Triggered: <strong>{{ triggered_rules | join(", ") }}</strong>
+        {% else %}
+          <span class="none">No rules triggered — clean scan</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Findings ranked by severity -->
+  <div class="section">
+    <div class="section-title">Findings (ranked by severity)</div>
+    {% if findings %}
+    <table>
+      <thead>
+        <tr>
+          <th style="width:100px">Severity</th>
+          <th style="width:160px">Rule</th>
+          <th style="width:180px">OWASP Ref</th>
+          <th>Evidence / Detail</th>
+          <th style="width:80px">Deduction</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in findings %}
+        <tr>
+          <td><span class="badge {{ f.severity }}">{{ f.severity }}</span></td>
+          <td><code>{{ f.rule }}</code></td>
+          <td>
+            <div>{{ f.owasp_ref }}</div>
+            <div class="owasp">{{ f.owasp_title }}</div>
+          </td>
+          <td>
+            {% if f.evidence %}
+            <ul class="evidence">
+              {% for ev in f.evidence %}
+              <li>{{ ev }}</li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <span class="empty">no evidence captured</span>
+            {% endif %}
+          </td>
+          <td style="text-align:right; font-weight:700; color:{% if f.deduction > 0 %}#f87171{% else %}#4ade80{% endif %}">
+            {% if f.deduction > 0 %}-{{ f.deduction }}{% else %}0{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No rule findings — all checks passed.</p>
+    {% endif %}
+  </div>
+
+  <!-- Trifecta attack paths -->
+  <div class="section">
+    <div class="section-title">Trifecta Attack Paths ({{ trifecta_findings | length }})</div>
+    {% if trifecta_findings %}
+      {% for tf in trifecta_findings %}
+      <div class="trifecta-path">
+        {{ tf.path | join(" → ") }}
+        {% if tf.confidence is defined %}
+          <span style="float:right; color:#7c3aed; font-size:10px;">confidence: {{ tf.confidence }}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+    <p class="empty">No trifecta attack paths detected.</p>
+    {% endif %}
+  </div>
+
+  <!-- AI-BOM link -->
+  <div class="section">
+    <div class="section-title">AI Bill of Materials</div>
+    {% if aibom_url %}
+    <a class="aibom-link" href="{{ aibom_url }}">View AI-BOM ({{ component_count }} components) →</a>
+    {% else %}
+    <p class="empty">AI-BOM available at <code>/scans/{{ scan_id }}/aibom</code></p>
+    {% endif %}
+  </div>
+
+  <!-- Warnings -->
+  {% if warnings %}
+  <div class="section">
+    <div class="section-title">Parse Warnings</div>
+    <ul class="evidence">
+      {% for w in warnings %}
+      <li>{{ w }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <footer>
+    Generated by Aegis · <a href="/scans/{{ scan_id }}/aibom" style="color:#475569;">AI-BOM</a> ·
+    <a href="/scans/{{ scan_id }}/report?fmt=json" style="color:#475569;">JSON Report</a> ·
+    <a href="/scans/{{ scan_id }}/report?fmt=text" style="color:#475569;">Text Report</a>
+  </footer>
+</div>
+
+</body>
+</html>

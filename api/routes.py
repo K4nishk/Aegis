@@ -22,7 +22,7 @@ from typing import Any
 
 import psycopg2.extras  # type: ignore[import-untyped]
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 
 from analyzer.posture import score_posture
 from analyzer.trifecta import analyze_trifecta
@@ -38,6 +38,7 @@ from api.models import (
     ScanResponse,
 )
 from api.rate_limit import gate_rate_limit, scans_rate_limit
+from api.report_html import build_report_context, render_html_report
 from parser.mcp import parse_mcp_config
 from parser.persist import persist_graph
 
@@ -223,7 +224,8 @@ async def get_scan(
 async def get_report(
     scan_id: str,
     request: Request,
-    fmt: str = Query("json", pattern="^(json|text)$"),
+    fmt: str = Query("json", pattern="^(json|text|html)$"),
+    download: bool = Query(False, description="Return as downloadable file attachment"),
     db: Any = Depends(get_authed_db),  # noqa: B008
     user_id: uuid.UUID = Depends(get_current_user),  # noqa: B008
 ) -> Any:
@@ -287,7 +289,46 @@ async def get_report(
             lines += [f"  {w}" for w in report.warnings]
         return PlainTextResponse("\n".join(lines))
 
+    if fmt == "html":
+        return _render_html(
+            scan_id=scan_id,
+            meta=meta,
+            request=request,
+            download=download,
+        )
+
     return report
+
+
+def _render_html(
+    *,
+    scan_id: str,
+    meta: dict[str, Any],
+    request: Request,
+    download: bool = False,
+) -> HTMLResponse:
+    """Render the Jinja2 HTML report and return an HTMLResponse."""
+    # Resolve component count from meta if available; otherwise 0.
+    component_count: int = len(meta.get("trifecta_profiles", {}))
+    base_url = str(request.base_url).rstrip("/")
+    aibom_url = f"{base_url}/scans/{scan_id}/aibom"
+
+    context = build_report_context(
+        scan_id=scan_id,
+        meta=meta,
+        label=meta.get("label"),
+        created_at=meta.get("created_at"),
+        completed_at=meta.get("completed_at"),
+        component_count=component_count,
+        aibom_url=aibom_url,
+    )
+    html = render_html_report(context)
+
+    headers: dict[str, str] = {}
+    if download:
+        headers["Content-Disposition"] = f'attachment; filename="aegis-report-{scan_id[:8]}.html"'
+
+    return HTMLResponse(content=html, headers=headers)
 
 
 # ---------------------------------------------------------------------------
