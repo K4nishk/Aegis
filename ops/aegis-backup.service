@@ -1,0 +1,25 @@
+[Unit]
+Description=Aegis nightly pg_dump → S3 backup (KCH-23 / SEC-7)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=aegis
+Group=aegis
+
+# Load secrets from an environment file not committed to the repo
+EnvironmentFile=/etc/aegis/backup.env
+
+ExecStart=/opt/aegis/ops/backup.sh
+
+# Harden the service
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/tmp/aegis_backup
+
+# Never treat non-zero exit as OK — fail loudly so monitoring fires
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aegis-backup

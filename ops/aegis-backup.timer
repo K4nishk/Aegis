@@ -1,0 +1,14 @@
+[Unit]
+Description=Aegis nightly pg_dump backup timer (KCH-23 / SEC-7)
+Requires=aegis-backup.service
+
+[Timer]
+# Fire at 02:00 UTC every day; RandomizedDelaySec avoids thundering-herd
+# across multiple instances.
+OnCalendar=*-*-* 02:00:00 UTC
+RandomizedDelaySec=300
+Persistent=true
+Unit=aegis-backup.service
+
+[Install]
+WantedBy=timers.target

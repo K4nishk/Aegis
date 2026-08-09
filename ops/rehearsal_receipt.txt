@@ -1,0 +1,14 @@
+AEGIS BACKUP RESTORE REHEARSAL RECEIPT
+=======================================
+Timestamp (UTC):  2026-08-09T15:15:30.870207+00:00
+Source DB:        aegis_kch23_src
+Target DB:        aegis_kch23_dst
+Dump format:      pg_dump --format=custom
+Restore flags:    --no-owner --no-privileges
+Dump size:        102715 bytes
+Tables verified:
+  scan_runs: 2 rows (src == dst)
+  tool_graph_nodes: 0 rows (src == dst)
+  tool_graph_edges: 0 rows (src == dst)
+
+RESULT: PASS — all row counts match, restore successful
