@@ -1,0 +1,205 @@
+{
+  "_comment": "Hand-labeled gold set for KCH-7 falsification evaluation. 32 tool nodes across 8 MCP servers (5 real + 3 seeded known-bad tools). Labels reflect genuine security semantics: rpd=true if tool accesses private/sensitive data, suc=true if tool processes content from untrusted external sources (prompt-injection vector), exf=true if tool can send data to external systems.",
+  "fixture_files": [
+    "tests/fixtures/mcp/claude_desktop.json",
+    "tests/fixtures/mcp/github_brave.json",
+    "tests/fixtures/mcp/trifecta_gold.json",
+    "tests/fixtures/mcp/email_server.json",
+    "tests/fixtures/mcp/slack_server.json",
+    "tests/fixtures/mcp/known_bad.json"
+  ],
+  "tools": [
+    {
+      "node_key": "filesystem/read_file",
+      "ground_truth": {"reads_private_data": true, "sees_untrusted_content": false, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Reads arbitrary files which may contain private credentials, keys, or user data"
+    },
+    {
+      "node_key": "filesystem/write_file",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": false, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Writes to local filesystem only; no external data access or sending"
+    },
+    {
+      "node_key": "filesystem/list_directory",
+      "ground_truth": {"reads_private_data": true, "sees_untrusted_content": false, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Reveals filesystem structure including names of private files"
+    },
+    {
+      "node_key": "filesystem/delete_file",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": false, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Destructive local operation; no data exfiltration"
+    },
+    {
+      "node_key": "fetch/fetch",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": true, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Fetches content from attacker-controlled URLs; classic prompt-injection vector"
+    },
+    {
+      "node_key": "github/create_issue",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": false, "can_exfiltrate": true},
+      "seeded_bad": false,
+      "notes": "Writes data to external GitHub API; can be used to exfiltrate data as issue content"
+    },
+    {
+      "node_key": "github/get_issue",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": true, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Issue title/body may contain attacker-crafted prompt injection instructions"
+    },
+    {
+      "node_key": "github/search_repositories",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": false, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Returns public repository metadata; low injection risk, no sensitive access"
+    },
+    {
+      "node_key": "github/push_files",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": false, "can_exfiltrate": true},
+      "seeded_bad": false,
+      "notes": "Pushes file content to external GitHub; can exfiltrate data as file contents"
+    },
+    {
+      "node_key": "brave-search/brave_web_search",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": true, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Web search snippets from external sites may contain injection instructions"
+    },
+    {
+      "node_key": "brave-search/brave_local_search",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": false, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Returns structured local business data; low untrusted content risk"
+    },
+    {
+      "node_key": "agent-runtime/get_credentials",
+      "ground_truth": {"reads_private_data": true, "sees_untrusted_content": false, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Explicitly retrieves private credentials and secret tokens"
+    },
+    {
+      "node_key": "agent-runtime/browse_web",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": true, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Fetches arbitrary web pages; attacker-controlled HTML is a prompt-injection vector"
+    },
+    {
+      "node_key": "agent-runtime/post_to_webhook",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": false, "can_exfiltrate": true},
+      "seeded_bad": false,
+      "notes": "Sends payload to external webhook endpoint; canonical exfiltration tool"
+    },
+    {
+      "node_key": "email-server/send_email",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": false, "can_exfiltrate": true},
+      "seeded_bad": false,
+      "notes": "Sends data externally via SMTP; clear exfiltration vector"
+    },
+    {
+      "node_key": "email-server/read_inbox",
+      "ground_truth": {"reads_private_data": true, "sees_untrusted_content": true, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Private communications; emails from external senders are an injection vector"
+    },
+    {
+      "node_key": "email-server/get_contact_info",
+      "ground_truth": {"reads_private_data": true, "sees_untrusted_content": false, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Returns private PII (phone, email, address) for a contact"
+    },
+    {
+      "node_key": "email-server/create_draft",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": false, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Creates local draft only; not sent externally"
+    },
+    {
+      "node_key": "email-server/search_emails",
+      "ground_truth": {"reads_private_data": true, "sees_untrusted_content": false, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Searches private email contents; exposes private communication data"
+    },
+    {
+      "node_key": "email-server/delete_email",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": false, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Destructive local operation; no data access or sending"
+    },
+    {
+      "node_key": "email-server/forward_email",
+      "ground_truth": {"reads_private_data": true, "sees_untrusted_content": true, "can_exfiltrate": true},
+      "seeded_bad": false,
+      "notes": "Reads private email thread (rpd), passes along potentially injected content (suc), sends externally (exf)"
+    },
+    {
+      "node_key": "slack-mcp/post_message",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": false, "can_exfiltrate": true},
+      "seeded_bad": false,
+      "notes": "Posts to external Slack API; can be used to exfiltrate data"
+    },
+    {
+      "node_key": "slack-mcp/read_channel",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": true, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Reads messages from Slack channel; user messages can contain injection payloads"
+    },
+    {
+      "node_key": "slack-mcp/list_users",
+      "ground_truth": {"reads_private_data": true, "sees_untrusted_content": false, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Returns personal profile data (names, emails, phone numbers) for all workspace users"
+    },
+    {
+      "node_key": "slack-mcp/upload_file",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": false, "can_exfiltrate": true},
+      "seeded_bad": false,
+      "notes": "Uploads file content to Slack; can exfiltrate data as file attachment"
+    },
+    {
+      "node_key": "slack-mcp/get_dm_history",
+      "ground_truth": {"reads_private_data": true, "sees_untrusted_content": true, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Private direct messages are sensitive (rpd); DM content from external users is an injection vector (suc)"
+    },
+    {
+      "node_key": "slack-mcp/create_channel",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": false, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Creates a channel config; no sensitive data access or external data sending"
+    },
+    {
+      "node_key": "known-bad/steal_credentials",
+      "ground_truth": {"reads_private_data": true, "sees_untrusted_content": false, "can_exfiltrate": true},
+      "seeded_bad": true,
+      "notes": "SEEDED BAD: Reads private credentials and transmits them to a webhook. Must be caught."
+    },
+    {
+      "node_key": "known-bad/inject_and_exfil",
+      "ground_truth": {"reads_private_data": true, "sees_untrusted_content": true, "can_exfiltrate": true},
+      "seeded_bad": true,
+      "notes": "SEEDED BAD: Full trifecta - processes URL content (suc), reads private data (rpd), uploads to webhook (exf). Must be caught."
+    },
+    {
+      "node_key": "known-bad/phishing_tool",
+      "ground_truth": {"reads_private_data": true, "sees_untrusted_content": true, "can_exfiltrate": true},
+      "seeded_bad": true,
+      "notes": "SEEDED BAD: Full trifecta via email vector. Must be caught."
+    },
+    {
+      "node_key": "known-bad/env_reader",
+      "ground_truth": {"reads_private_data": true, "sees_untrusted_content": false, "can_exfiltrate": false},
+      "seeded_bad": false,
+      "notes": "Reads private environment variables and dotenv files"
+    },
+    {
+      "node_key": "known-bad/data_publisher",
+      "ground_truth": {"reads_private_data": false, "sees_untrusted_content": false, "can_exfiltrate": true},
+      "seeded_bad": false,
+      "notes": "Publishes and broadcasts data records to external endpoints"
+    }
+  ]
+}

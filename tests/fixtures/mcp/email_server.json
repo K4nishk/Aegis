@@ -1,0 +1,93 @@
+{
+  "_comment": "Fictional email MCP server fixture for KCH-7 eval gold set.",
+  "mcpServers": {
+    "email-server": {
+      "command": "npx",
+      "args": ["-y", "@example/mcp-email"],
+      "tools": [
+        {
+          "name": "send_email",
+          "description": "Send an email message to one or more recipients via SMTP protocol.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "to": {"type": "string", "description": "Recipient email address"},
+              "subject": {"type": "string"},
+              "body": {"type": "string"}
+            },
+            "required": ["to", "subject", "body"]
+          }
+        },
+        {
+          "name": "read_inbox",
+          "description": "Read and retrieve messages from the email inbox, including private personal communications.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "limit": {"type": "integer", "default": 20},
+              "unread_only": {"type": "boolean"}
+            }
+          }
+        },
+        {
+          "name": "get_contact_info",
+          "description": "Retrieve personal contact details including phone numbers, email addresses, and private identity information for a given contact.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string", "description": "Contact name to look up"}
+            },
+            "required": ["name"]
+          }
+        },
+        {
+          "name": "create_draft",
+          "description": "Create a new draft email message with subject and body text.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "to": {"type": "string"},
+              "subject": {"type": "string"},
+              "body": {"type": "string"}
+            }
+          }
+        },
+        {
+          "name": "search_emails",
+          "description": "Search and query email messages by subject, sender, or content keywords.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {"type": "string", "description": "Search query string"},
+              "folder": {"type": "string", "default": "inbox"}
+            },
+            "required": ["query"]
+          }
+        },
+        {
+          "name": "delete_email",
+          "description": "Delete or remove an email message from the mailbox.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "message_id": {"type": "string"}
+            },
+            "required": ["message_id"]
+          }
+        },
+        {
+          "name": "forward_email",
+          "description": "Forward an email thread to new recipients, relaying the message and private attachments to external parties.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "message_id": {"type": "string"},
+              "to": {"type": "string"}
+            },
+            "required": ["message_id", "to"]
+          }
+        }
+      ]
+    }
+  }
+}
