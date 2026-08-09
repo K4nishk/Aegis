@@ -194,9 +194,7 @@ class TestStructlogIntegration:
         configure_structlog()
         config = structlog.get_config()
         # Our processor is a plain function; check by function name.
-        func_names = [
-            getattr(p, "__name__", type(p).__name__) for p in config["processors"]
-        ]
+        func_names = [getattr(p, "__name__", type(p).__name__) for p in config["processors"]]
         assert "structlog_redact_processor" in func_names, (
             f"structlog_redact_processor not found in chain: {func_names}"
         )
@@ -233,6 +231,4 @@ class TestGitleaksCleanHistory:
             capture_output=True,
             text=True,
         )
-        assert result.returncode == 0, (
-            f"gitleaks found leaks:\n{result.stdout}\n{result.stderr}"
-        )
+        assert result.returncode == 0, f"gitleaks found leaks:\n{result.stdout}\n{result.stderr}"

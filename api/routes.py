@@ -58,7 +58,9 @@ def _iso(dt: datetime) -> str:
 # ---------------------------------------------------------------------------
 
 
-@router.post("/scans", response_model=ScanResponse, status_code=201, dependencies=[Depends(scans_rate_limit)])  # noqa: B008
+@router.post(
+    "/scans", response_model=ScanResponse, status_code=201, dependencies=[Depends(scans_rate_limit)]
+)  # noqa: B008
 async def create_scan(
     body: ScanRequest,
     request: Request,
@@ -100,9 +102,7 @@ async def create_scan(
             }
             for f in trifecta.findings
         ],
-        "trifecta_profiles": {
-            k: v.as_dict() for k, v in trifecta.profiles.items()
-        },
+        "trifecta_profiles": {k: v.as_dict() for k, v in trifecta.profiles.items()},
         "warnings": graph.warnings,
     }
 

@@ -221,7 +221,10 @@ def db_conn():
     yield conn
     # Cleanup rows inserted by this test run
     with conn.cursor() as cur:
-        cur.execute("DELETE FROM dynamic_probe_results WHERE probe_id = %s", (CANNED_TRIFECTA_PROBE.probe_id,))
+        cur.execute(
+            "DELETE FROM dynamic_probe_results WHERE probe_id = %s",
+            (CANNED_TRIFECTA_PROBE.probe_id,),
+        )
         conn.commit()
     conn.close()
 

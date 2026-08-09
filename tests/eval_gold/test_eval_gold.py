@@ -64,19 +64,13 @@ def _write_falsification_md(report: EvalReport) -> None:
 
     kill_reasons: list[str] = []
     if report.kill_precision:
-        kill_reasons.append(
-            f"macro precision {report.macro_precision:.1%} < 60% threshold"
-        )
+        kill_reasons.append(f"macro precision {report.macro_precision:.1%} < 60% threshold")
     if report.kill_f1:
         kill_reasons.append(f"macro F1 {report.macro_f1:.1%} < 70% threshold")
     if report.kill_seeded_bad:
-        kill_reasons.append(
-            f"seeded-bad missed: {report.seeded_bad_missed}"
-        )
+        kill_reasons.append(f"seeded-bad missed: {report.seeded_bad_missed}")
     if report.kill_ambiguity:
-        kill_reasons.append(
-            f"ambiguity rate {report.ambiguity_rate:.1%} > 40% threshold"
-        )
+        kill_reasons.append(f"ambiguity rate {report.ambiguity_rate:.1%} > 40% threshold")
 
     if verdict == "GO":
         decision_body = textwrap.dedent("""\
@@ -106,7 +100,7 @@ def _write_falsification_md(report: EvalReport) -> None:
             layer to observe actual data flows rather than relying on descriptions.
 
             Kill reasons:
-            {chr(10).join(f'  - {r}' for r in kill_reasons)}
+            {chr(10).join(f"  - {r}" for r in kill_reasons)}
             """)
 
     # Per-cap detail table (reuse summary_lines from EvalReport)
@@ -215,9 +209,7 @@ def _write_falsification_md(report: EvalReport) -> None:
 
 def test_gold_set_size(eval_report: EvalReport) -> None:
     """Must have at least 30 labeled tool nodes."""
-    assert eval_report.n_tools >= 30, (
-        f"Gold set has only {eval_report.n_tools} tools; need ≥30"
-    )
+    assert eval_report.n_tools >= 30, f"Gold set has only {eval_report.n_tools} tools; need ≥30"
 
 
 def test_seeded_bad_not_missed(eval_report: EvalReport) -> None:

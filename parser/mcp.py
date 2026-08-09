@@ -242,7 +242,7 @@ def _infer_edges(nodes: list[ToolNode]) -> list[ToolEdge]:
 
         # Trust edges: every pair within the same server
         for i, src in enumerate(snodes):
-            for dst in snodes[i + 1:]:
+            for dst in snodes[i + 1 :]:
                 edges.append(
                     ToolEdge(
                         source_key=src.node_key,

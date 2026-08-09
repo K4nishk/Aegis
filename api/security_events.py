@@ -54,6 +54,7 @@ def get_request_ip() -> str:
 def get_request_correlation_id() -> str | None:
     return _request_correlation_id.get()
 
+
 # ---------------------------------------------------------------------------
 # Spike detection config
 # ---------------------------------------------------------------------------
@@ -86,9 +87,7 @@ def _check_and_record_spike(ip: str) -> bool:
     try:
         import redis as redis_lib  # type: ignore[import-untyped]
 
-        r = redis_lib.Redis.from_url(
-            redis_url, socket_connect_timeout=1, decode_responses=True
-        )
+        r = redis_lib.Redis.from_url(redis_url, socket_connect_timeout=1, decode_responses=True)
         key = f"aegis:auth_fail:{ip}"
         count = r.incr(key)
         if count == 1:

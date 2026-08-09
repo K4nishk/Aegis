@@ -151,9 +151,7 @@ _SUD_DIRECT_RE = re.compile(
 _SUD_WEB_SEARCH_RE = re.compile(r"\bweb.?search\b", re.I)
 
 # Inbound-read verbs: the tool is *reading* content, not sending it.
-_SUD_READ_VERB_RE = re.compile(
-    r"\b(read|retrieve|get|fetch|forward|relay)\b", re.I
-)
+_SUD_READ_VERB_RE = re.compile(r"\b(read|retrieve|get|fetch|forward|relay)\b", re.I)
 
 # Message/channel/content nouns that, when paired with an inbound-read verb,
 # signal that the tool ingests content from an external actor.
