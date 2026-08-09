@@ -62,10 +62,6 @@ class ToolGraph:
     warnings: list[str] = field(default_factory=list)
 
 
-# Backward-compat alias: upstream agents built against ParseResult continue to work.
-ParseResult = ToolGraph
-
-
 # ---------------------------------------------------------------------------
 # Capability inference
 # ---------------------------------------------------------------------------
