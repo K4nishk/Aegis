@@ -28,7 +28,7 @@ import json
 from typing import Any
 from uuid import UUID
 
-from parser.mcp import ParseResult
+from parser.mcp import ToolGraph
 
 # ---------------------------------------------------------------------------
 # SQL
@@ -36,12 +36,13 @@ from parser.mcp import ParseResult
 
 _INSERT_NODE = """
     INSERT INTO tool_graph_nodes
-        (scan_run_id, node_key, tool_name, tool_version, caps, def_hash)
+        (scan_run_id, node_key, tool_name, server_name, tool_version, caps, def_hash)
     VALUES
         (%(scan_run_id)s, %(node_key)s, %(tool_name)s,
-         %(tool_version)s, %(caps)s::jsonb, %(def_hash)s)
+         %(server_name)s, %(tool_version)s, %(caps)s::jsonb, %(def_hash)s)
     ON CONFLICT (scan_run_id, node_key) DO UPDATE
-        SET tool_version = EXCLUDED.tool_version,
+        SET server_name  = EXCLUDED.server_name,
+            tool_version = EXCLUDED.tool_version,
             caps         = EXCLUDED.caps,
             def_hash     = EXCLUDED.def_hash
     RETURNING id
@@ -64,9 +65,9 @@ _INSERT_EDGE = """
 def persist_graph(
     conn: Any,
     scan_run_id: str | UUID,
-    result: ParseResult,
+    result: ToolGraph,
 ) -> dict[str, str]:
-    """Persist ParseResult to the database within the caller's transaction.
+    """Persist ToolGraph to the database within the caller's transaction.
 
     Args:
         conn: Active psycopg2 connection (caller manages commit/rollback).
@@ -87,6 +88,7 @@ def persist_graph(
                     "scan_run_id": scan_id,
                     "node_key": node.node_key,
                     "tool_name": node.tool_name,
+                    "server_name": node.server_name,
                     "tool_version": node.tool_version,
                     "caps": json.dumps(node.caps),
                     "def_hash": node.def_hash,

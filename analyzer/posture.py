@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     pass
 
 from analyzer.trifecta import TrifectaResult, analyze_trifecta
-from parser.mcp import ParseResult, ToolNode
+from parser.mcp import ToolGraph, ToolNode
 
 # ---------------------------------------------------------------------------
 # Rule catalogue
@@ -258,7 +258,7 @@ def _eval_no_ratelimit(nodes: list[ToolNode]) -> RuleResult:
 
 
 def score_posture(
-    parse_result: ParseResult,
+    parse_result: ToolGraph,
     trifecta_result: TrifectaResult | None = None,
 ) -> PostureScore:
     """Compute a deterministic posture score for *parse_result*.

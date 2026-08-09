@@ -20,7 +20,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Public data model
 # ---------------------------------------------------------------------------
@@ -50,13 +49,21 @@ class ToolEdge:
 
 
 @dataclass
-class ParseResult:
-    """Output of parse_mcp_config."""
+class ToolGraph:
+    """A normalized tool graph produced by parse_mcp_config.
+
+    Holds both the domain data (nodes + edges) and parse diagnostics
+    (source_file, warnings) as a pragmatic single type.
+    """
 
     nodes: list[ToolNode] = field(default_factory=list)
     edges: list[ToolEdge] = field(default_factory=list)
     source_file: str | None = None
     warnings: list[str] = field(default_factory=list)
+
+
+# Backward-compat alias: upstream agents built against ParseResult continue to work.
+ParseResult = ToolGraph
 
 
 # ---------------------------------------------------------------------------
@@ -286,17 +293,17 @@ def parse_mcp_config(
     source: str | Path | dict[str, Any],
     *,
     source_name: str | None = None,
-) -> ParseResult:
+) -> ToolGraph:
     """Parse an MCP config into a normalized tool graph.
 
     Args:
         source: File path (str or Path), raw JSON string, or pre-parsed dict.
-        source_name: Label for ParseResult.source_file and warning messages.
+        source_name: Label for ToolGraph.source_file and warning messages.
 
     Returns:
-        ParseResult containing nodes, edges, and any parse warnings.
+        ToolGraph containing nodes, edges, and any parse warnings.
     """
-    result = ParseResult()
+    result = ToolGraph()
     warnings = result.warnings
 
     # --- Resolve to raw dict ---
@@ -368,6 +375,6 @@ def parse_mcp_config(
     return result
 
 
-def parse_mcp_file(path: str | Path) -> ParseResult:
+def parse_mcp_file(path: str | Path) -> ToolGraph:
     """Convenience wrapper: parse a JSON file at path."""
     return parse_mcp_config(Path(path))
