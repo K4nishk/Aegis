@@ -1,9 +1,11 @@
-"""api/deps.py — FastAPI dependencies: DB connection, API-key auth (KCH-11/KCH-17)."""
+"""api/deps.py — FastAPI dependencies: DB connection, API-key auth (KCH-11/KCH-17/KCH-30)."""
 
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
+import secrets
 import uuid
 from collections.abc import Generator
 from typing import Any
@@ -15,9 +17,11 @@ from fastapi.security import APIKeyHeader
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+_log = logging.getLogger(__name__)
+
 _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-# Sentinel UUID used in dev/anonymous mode (no API key, no AEGIS_USER_ID).
+# Sentinel UUID used in dev/anonymous mode (AEGIS_DEV_NO_AUTH=1 only).
 _ANON_USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
 
@@ -27,8 +31,25 @@ def _key_to_user_id(key: str) -> uuid.UUID:
     return uuid.UUID(bytes=raw)
 
 
+def check_auth_config() -> None:
+    """Fail closed: raise RuntimeError if auth is misconfigured.
+
+    Called at app startup (create_app). If AEGIS_API_KEY is not set and
+    AEGIS_DEV_NO_AUTH is not '1', the app refuses to start rather than
+    silently serving unauthenticated traffic (KCH-30).
+    """
+    api_key = os.environ.get("AEGIS_API_KEY")
+    dev_no_auth = os.environ.get("AEGIS_DEV_NO_AUTH") == "1"
+    if not api_key and not dev_no_auth:
+        raise RuntimeError(
+            "AEGIS_API_KEY is not set. "
+            "Set it to a secret value, or set AEGIS_DEV_NO_AUTH=1 "
+            "to run without auth locally (never in production)."
+        )
+
+
 # ---------------------------------------------------------------------------
-# Auth + user resolution — KCH-17
+# Auth + user resolution — KCH-17 / KCH-30
 # ---------------------------------------------------------------------------
 
 
@@ -38,17 +59,27 @@ async def get_current_user(
     """Validate the API key and resolve it to an owner UUID.
 
     Resolution order:
-    1. If AEGIS_API_KEY is set and the provided key doesn't match → 401.
-    2. If AEGIS_USER_ID env var is set → use that UUID (useful in tests and
-       single-key deployments where one canonical user is configured).
-    3. Otherwise derive a UUID from the key via SHA-256 (deterministic, no DB lookup).
-    4. No key at all → anonymous sentinel UUID (dev mode when AEGIS_API_KEY unset).
+    1. AEGIS_DEV_NO_AUTH=1 → skip key check; use AEGIS_USER_ID or _ANON_USER_ID.
+    2. AEGIS_API_KEY set, key matches (constant-time compare) → proceed.
+    3. Key missing or wrong → 401 (security event logged).
+    4. AEGIS_API_KEY unset and dev mode off → 401 (startup check should catch this first).
     """
-    expected = os.environ.get("AEGIS_API_KEY")
-    if expected and key != expected:
-        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+    dev_no_auth = os.environ.get("AEGIS_DEV_NO_AUTH") == "1"
+    configured_key = os.environ.get("AEGIS_API_KEY")
 
-    # Explicit user override (for tests and single-key deployments)
+    if not dev_no_auth:
+        if not configured_key:
+            # Misconfiguration: startup check should have prevented this.
+            _log.warning("security_event=auth_failure reason=no_key_configured")
+            raise HTTPException(status_code=401, detail="Invalid or missing API key")
+        if not secrets.compare_digest(key or "", configured_key):
+            _log.warning(
+                "security_event=auth_failure reason=bad_key key_present=%s",
+                key is not None,
+            )
+            raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
+    # Explicit user override (for single-key deployments and tests in dev mode)
     override = os.environ.get("AEGIS_USER_ID")
     if override:
         return uuid.UUID(override)
@@ -56,6 +87,7 @@ async def get_current_user(
     if key:
         return _key_to_user_id(key)
 
+    # dev_no_auth=True with no key and no AEGIS_USER_ID → anonymous sentinel
     return _ANON_USER_ID
 
 
@@ -140,10 +172,8 @@ async def require_api_key(
 ) -> str | None:
     """Check X-API-Key against AEGIS_API_KEY env var.
 
-    If AEGIS_API_KEY is not set the check is skipped (dev / test mode).
     Deprecated: prefer get_current_user which also returns the owner UUID.
+    Delegates to get_current_user so auth logic stays in one place (KCH-30).
     """
-    expected = os.environ.get("AEGIS_API_KEY")
-    if expected and key != expected:
-        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+    await get_current_user(key)
     return key

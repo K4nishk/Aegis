@@ -23,14 +23,17 @@ _SIMPLE_MCP = {"mcpServers": {}}
 
 
 def _client(dsn: str, user_id: str):
-    """Create a TestClient with DATABASE_URL and AEGIS_USER_ID set."""
+    """Create a TestClient with DATABASE_URL and AEGIS_USER_ID set.
+
+    Uses AEGIS_DEV_NO_AUTH=1 so tests don't need a key header (KCH-30).
+    """
     from fastapi.testclient import TestClient
 
     from api.app import create_app
 
     os.environ["DATABASE_URL"] = dsn
     os.environ["AEGIS_USER_ID"] = user_id
-    # Remove API key restriction so tests don't need a key header
+    os.environ["AEGIS_DEV_NO_AUTH"] = "1"
     os.environ.pop("AEGIS_API_KEY", None)
     app = create_app()
     return TestClient(app, raise_server_exceptions=True)
@@ -56,40 +59,53 @@ def _post_scan(client, mcp_json: dict | None = None) -> str:
 class TestGetCurrentUser:
     """get_current_user key-to-UUID mapping logic."""
 
-    def test_anon_uuid_when_no_key_and_no_env(self):
+    def test_anon_uuid_in_dev_mode_no_key(self):
+        """With AEGIS_DEV_NO_AUTH=1 and no key/override → _ANON_USER_ID (KCH-30)."""
         import asyncio
 
         from api.deps import _ANON_USER_ID, get_current_user
 
+        os.environ["AEGIS_DEV_NO_AUTH"] = "1"
         os.environ.pop("AEGIS_USER_ID", None)
         os.environ.pop("AEGIS_API_KEY", None)
-        result = asyncio.run(get_current_user(None))
-        assert result == _ANON_USER_ID
+        try:
+            result = asyncio.run(get_current_user(None))
+            assert result == _ANON_USER_ID
+        finally:
+            del os.environ["AEGIS_DEV_NO_AUTH"]
 
-    def test_aegis_user_id_env_overrides(self):
+    def test_aegis_user_id_env_overrides_in_dev_mode(self):
+        """AEGIS_USER_ID override is respected in dev mode (KCH-30)."""
         import asyncio
 
         from api.deps import get_current_user
 
+        os.environ["AEGIS_DEV_NO_AUTH"] = "1"
         os.environ["AEGIS_USER_ID"] = _USER_A
         try:
             result = asyncio.run(get_current_user(None))
             assert result == uuid.UUID(_USER_A)
         finally:
-            del os.environ["AEGIS_USER_ID"]
+            os.environ.pop("AEGIS_DEV_NO_AUTH", None)
+            os.environ.pop("AEGIS_USER_ID", None)
 
     def test_key_derives_deterministic_uuid(self):
+        """Key → deterministic UUID via SHA-256 when AEGIS_API_KEY matches (KCH-17)."""
         import asyncio
         import hashlib
 
         from api.deps import get_current_user
 
-        os.environ.pop("AEGIS_USER_ID", None)
-        os.environ.pop("AEGIS_API_KEY", None)
         key = "test-key-xyz"
-        result = asyncio.run(get_current_user(key))
-        expected_bytes = hashlib.sha256(key.encode()).digest()[:16]
-        assert result == uuid.UUID(bytes=expected_bytes)
+        os.environ["AEGIS_API_KEY"] = key
+        os.environ.pop("AEGIS_USER_ID", None)
+        os.environ.pop("AEGIS_DEV_NO_AUTH", None)
+        try:
+            result = asyncio.run(get_current_user(key))
+            expected_bytes = hashlib.sha256(key.encode()).digest()[:16]
+            assert result == uuid.UUID(bytes=expected_bytes)
+        finally:
+            del os.environ["AEGIS_API_KEY"]
 
     def test_wrong_api_key_raises_401(self):
         import asyncio
@@ -99,6 +115,7 @@ class TestGetCurrentUser:
         from api.deps import get_current_user
 
         os.environ["AEGIS_API_KEY"] = "correct-key"
+        os.environ.pop("AEGIS_DEV_NO_AUTH", None)
         try:
             with pytest.raises(HTTPException) as exc_info:
                 asyncio.run(get_current_user("wrong-key"))
@@ -118,10 +135,10 @@ class TestOwnershipIsolation:
     @pytest.fixture(autouse=True)
     def _cleanup_env(self):
         """Ensure env vars are clean before and after each test."""
-        for k in ("AEGIS_USER_ID", "AEGIS_API_KEY", "DATABASE_URL"):
+        for k in ("AEGIS_USER_ID", "AEGIS_API_KEY", "DATABASE_URL", "AEGIS_DEV_NO_AUTH"):
             os.environ.pop(k, None)
         yield
-        for k in ("AEGIS_USER_ID", "AEGIS_API_KEY", "DATABASE_URL"):
+        for k in ("AEGIS_USER_ID", "AEGIS_API_KEY", "DATABASE_URL", "AEGIS_DEV_NO_AUTH"):
             os.environ.pop(k, None)
 
     def test_get_scan_cross_user_returns_404(self, test_db_dsn):
