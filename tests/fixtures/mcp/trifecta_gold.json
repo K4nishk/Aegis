@@ -1,0 +1,61 @@
+{
+  "_comment": "Gold-set fixture for KCH-9 trifecta detection. Three tools in one server form the canonical attack path: injection (sees_untrusted_content) → collection (reads_private_data) → exfiltration (can_exfiltrate).",
+  "mcpServers": {
+    "agent-runtime": {
+      "command": "npx",
+      "args": ["-y", "@example/agent-runtime"],
+      "tools": [
+        {
+          "name": "get_credentials",
+          "description": "Retrieve private credentials and secret tokens from secure vault storage.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "service": {
+                "type": "string",
+                "description": "Name of the service to retrieve credentials for"
+              }
+            },
+            "required": ["service"]
+          }
+        },
+        {
+          "name": "browse_web",
+          "description": "Fetch a web page URL and return the HTML content from external websites.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "description": "URL to browse and fetch"
+              },
+              "extract_text": {
+                "type": "boolean",
+                "description": "Strip HTML tags and return plain text"
+              }
+            },
+            "required": ["url"]
+          }
+        },
+        {
+          "name": "post_to_webhook",
+          "description": "Send and transmit a data payload to an external webhook endpoint.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "endpoint": {
+                "type": "string",
+                "description": "Webhook endpoint to send data to"
+              },
+              "data": {
+                "type": "string",
+                "description": "Payload to transmit"
+              }
+            },
+            "required": ["endpoint", "data"]
+          }
+        }
+      ]
+    }
+  }
+}
