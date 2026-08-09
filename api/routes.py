@@ -37,6 +37,7 @@ from api.models import (
     ScanRequest,
     ScanResponse,
 )
+from api.rate_limit import gate_rate_limit, scans_rate_limit
 from parser.mcp import parse_mcp_config
 from parser.persist import persist_graph
 
@@ -56,7 +57,7 @@ def _iso(dt: datetime) -> str:
 # ---------------------------------------------------------------------------
 
 
-@router.post("/scans", response_model=ScanResponse, status_code=201)
+@router.post("/scans", response_model=ScanResponse, status_code=201, dependencies=[Depends(scans_rate_limit)])  # noqa: B008
 async def create_scan(
     body: ScanRequest,
     request: Request,
@@ -347,7 +348,7 @@ async def get_aibom(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/gate", response_model=GateResponse)
+@router.post("/gate", response_model=GateResponse, dependencies=[Depends(gate_rate_limit)])  # noqa: B008
 async def gate(
     body: GateRequest,
     request: Request,
