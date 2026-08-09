@@ -1,4 +1,4 @@
-"""api/routes.py — All five Aegis API endpoints (KCH-11).
+"""api/routes.py — All five Aegis API endpoints (KCH-11/KCH-17).
 
 Endpoints:
   POST /scans                       — parse mcp_json, analyse, persist, return result
@@ -6,6 +6,11 @@ Endpoints:
   GET  /scans/{scan_id}/report?fmt= — full posture report (json | text)
   GET  /scans/{scan_id}/aibom       — AI Bill of Materials
   POST /gate                        — pass/fail gate check
+
+KCH-17 authorization defence in two layers:
+  1. DB (RLS): every connection has SET LOCAL app.user_id so the DB itself
+     refuses rows the caller doesn't own.
+  2. API: every query also filters by owner_id = <current_user_id>.
 """
 
 from __future__ import annotations
@@ -21,7 +26,7 @@ from fastapi.responses import PlainTextResponse
 
 from analyzer.posture import score_posture
 from analyzer.trifecta import analyze_trifecta
-from api.deps import get_db, require_api_key
+from api.deps import get_authed_db, get_current_user
 from api.models import (
     AiBomComponent,
     AiBomResponse,
@@ -35,7 +40,7 @@ from api.models import (
 from parser.mcp import parse_mcp_config
 from parser.persist import persist_graph
 
-router = APIRouter(dependencies=[Depends(require_api_key)])
+router = APIRouter(dependencies=[Depends(get_current_user)])  # noqa: B008
 
 
 def _utcnow() -> datetime:
@@ -55,7 +60,8 @@ def _iso(dt: datetime) -> str:
 async def create_scan(
     body: ScanRequest,
     request: Request,
-    db: Any = Depends(get_db),  # noqa: B008
+    db: Any = Depends(get_authed_db),  # noqa: B008
+    user_id: uuid.UUID = Depends(get_current_user),  # noqa: B008
 ) -> ScanResponse:
     """Parse *mcp_json*, run trifecta + posture analysis, persist to DB."""
     label = body.label or "inline"
@@ -105,10 +111,10 @@ async def create_scan(
         with db.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO scan_runs (id, status, target, metadata, created_at)
-                VALUES (%s, %s, %s, %s::jsonb, %s)
+                INSERT INTO scan_runs (id, status, target, metadata, created_at, owner_id)
+                VALUES (%s, %s, %s, %s::jsonb, %s, %s)
                 """,
-                (scan_id, "running", label, json.dumps(metadata), now),
+                (scan_id, "running", label, json.dumps(metadata), now, str(user_id)),
             )
 
         try:
@@ -132,17 +138,17 @@ async def create_scan(
                     """
                     UPDATE scan_runs
                     SET status = %s, completed_at = %s, metadata = %s::jsonb
-                    WHERE id = %s
+                    WHERE id = %s AND owner_id = %s
                     """,
-                    ("completed", done, json.dumps(metadata), scan_id),
+                    ("completed", done, json.dumps(metadata), scan_id, str(user_id)),
                 )
             completed_at = _iso(done)
 
         except Exception:
             with db.cursor() as cur:
                 cur.execute(
-                    "UPDATE scan_runs SET status = 'failed' WHERE id = %s",
-                    (scan_id,),
+                    "UPDATE scan_runs SET status = 'failed' WHERE id = %s AND owner_id = %s",
+                    (scan_id, str(user_id)),
                 )
             raise
 
@@ -171,15 +177,20 @@ async def create_scan(
 async def get_scan(
     scan_id: str,
     request: Request,
-    db: Any = Depends(get_db),  # noqa: B008
+    db: Any = Depends(get_authed_db),  # noqa: B008
+    user_id: uuid.UUID = Depends(get_current_user),  # noqa: B008
 ) -> ScanResponse:
     if db is None:
         raise HTTPException(503, "Database not available")
 
     with db.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            "SELECT id, status, target, metadata, created_at, completed_at FROM scan_runs WHERE id = %s",
-            (scan_id,),
+            """
+            SELECT id, status, target, metadata, created_at, completed_at
+            FROM scan_runs
+            WHERE id = %s AND owner_id = %s
+            """,
+            (scan_id, str(user_id)),
         )
         row = cur.fetchone()
 
@@ -212,15 +223,16 @@ async def get_report(
     scan_id: str,
     request: Request,
     fmt: str = Query("json", pattern="^(json|text)$"),
-    db: Any = Depends(get_db),  # noqa: B008
+    db: Any = Depends(get_authed_db),  # noqa: B008
+    user_id: uuid.UUID = Depends(get_current_user),  # noqa: B008
 ) -> Any:
     if db is None:
         raise HTTPException(503, "Database not available")
 
     with db.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            "SELECT metadata FROM scan_runs WHERE id = %s",
-            (scan_id,),
+            "SELECT metadata FROM scan_runs WHERE id = %s AND owner_id = %s",
+            (scan_id, str(user_id)),
         )
         row = cur.fetchone()
 
@@ -286,14 +298,18 @@ async def get_report(
 async def get_aibom(
     scan_id: str,
     request: Request,
-    db: Any = Depends(get_db),  # noqa: B008
+    db: Any = Depends(get_authed_db),  # noqa: B008
+    user_id: uuid.UUID = Depends(get_current_user),  # noqa: B008
 ) -> AiBomResponse:
     if db is None:
         raise HTTPException(503, "Database not available")
 
-    # Verify scan exists
+    # Verify scan exists and belongs to the caller (API-level ownership check)
     with db.cursor() as cur:
-        cur.execute("SELECT 1 FROM scan_runs WHERE id = %s", (scan_id,))
+        cur.execute(
+            "SELECT 1 FROM scan_runs WHERE id = %s AND owner_id = %s",
+            (scan_id, str(user_id)),
+        )
         if cur.fetchone() is None:
             raise HTTPException(404, f"Scan {scan_id} not found")
 
@@ -335,15 +351,19 @@ async def get_aibom(
 async def gate(
     body: GateRequest,
     request: Request,
-    db: Any = Depends(get_db),  # noqa: B008
+    db: Any = Depends(get_authed_db),  # noqa: B008
+    user_id: uuid.UUID = Depends(get_current_user),  # noqa: B008
 ) -> GateResponse:
     if db is None:
         raise HTTPException(503, "Database not available")
 
     with db.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
-            "SELECT metadata FROM scan_runs WHERE id = %s AND status = 'completed'",
-            (body.scan_id,),
+            """
+            SELECT metadata FROM scan_runs
+            WHERE id = %s AND status = 'completed' AND owner_id = %s
+            """,
+            (body.scan_id, str(user_id)),
         )
         row = cur.fetchone()
 
