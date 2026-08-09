@@ -112,3 +112,65 @@ class GateResponse(BaseModel):
     min_score: int
     passed: bool
     triggered_rules: list[str]
+
+
+# ---------------------------------------------------------------------------
+# GET /metrics
+# ---------------------------------------------------------------------------
+
+
+class Q1TrifectaMetricsOut(BaseModel):
+    total_scans: int
+    scans_with_trifecta: int
+    pct_with_trifecta: float
+    total_trifecta_findings: int
+    avg_findings_per_scan: float
+
+
+class Q2DailyAvgOut(BaseModel):
+    date: str
+    avg_score: float
+    scan_count: int
+
+
+class Q2PostureMetricsOut(BaseModel):
+    window_days: int
+    avg_score: float
+    min_score: int
+    max_score: int
+    scan_count: int
+    daily: list[Q2DailyAvgOut]
+
+
+class Q3CapMetricsOut(BaseModel):
+    cap: str
+    precision: float
+    recall: float
+    f1: float
+    tp: int
+    fp: int
+    fn: int
+    tn: int
+
+
+class Q3EvalMetricsOut(BaseModel):
+    macro_f1: float
+    macro_precision: float
+    macro_recall: float
+    ambiguity_rate: float
+    n_tools: int
+    per_cap: list[Q3CapMetricsOut]
+    seeded_bad_missed: list[str]
+    kill_f1: bool
+    kill_precision: bool
+    kill_ambiguity: bool
+    kill_seeded_bad: bool
+    any_kill: bool
+
+
+class MetricsDashboard(BaseModel):
+    generated_at: str
+    window_days: int
+    q1: Q1TrifectaMetricsOut | None = None
+    q2: Q2PostureMetricsOut | None = None
+    q3: Q3EvalMetricsOut
