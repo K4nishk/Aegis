@@ -1,0 +1,99 @@
+# GitHub label definitions — mirrors Linear label taxonomy.
+# Apply with: gh label create / gh api, or a labels sync action.
+
+# ── Priority ─────────────────────────────────────────────────────────────────
+- name: "P0"
+  color: "b60205"
+  description: "Critical — must fix immediately"
+
+- name: "P1"
+  color: "e4e669"
+  description: "High priority"
+
+- name: "P2"
+  color: "0075ca"
+  description: "Medium priority"
+
+- name: "P3"
+  color: "cfd3d7"
+  description: "Low priority / nice-to-have"
+
+# ── Type ─────────────────────────────────────────────────────────────────────
+- name: "bug"
+  color: "d73a4a"
+  description: "Something isn't working"
+
+- name: "enhancement"
+  color: "a2eeef"
+  description: "New feature or request"
+
+- name: "security"
+  color: "e11d48"
+  description: "Security vulnerability or hardening"
+
+- name: "dependencies"
+  color: "0366d6"
+  description: "Pull requests that update a dependency file"
+
+- name: "documentation"
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+
+- name: "refactor"
+  color: "fbca04"
+  description: "Code refactoring with no behavior change"
+
+# ── Status ───────────────────────────────────────────────────────────────────
+- name: "needs-triage"
+  color: "e4e669"
+  description: "Needs initial review and labelling"
+
+- name: "in-progress"
+  color: "0e8a16"
+  description: "Actively being worked on"
+
+- name: "blocked"
+  color: "b60205"
+  description: "Blocked by another issue or external dependency"
+
+- name: "wontfix"
+  color: "ffffff"
+  description: "This will not be worked on"
+
+- name: "duplicate"
+  color: "cfd3d7"
+  description: "This issue or PR already exists"
+
+# ── Area ─────────────────────────────────────────────────────────────────────
+- name: "area/ci"
+  color: "bfd4f2"
+  description: "CI/CD pipelines and tooling"
+
+- name: "area/frontend"
+  color: "d4c5f9"
+  description: "Frontend / web application"
+
+- name: "area/backend"
+  color: "c2e0c6"
+  description: "Backend API"
+
+- name: "area/infra"
+  color: "fef2c0"
+  description: "Infrastructure / Terraform"
+
+- name: "area/core"
+  color: "f9d0c4"
+  description: "Core Aegis detection engine"
+
+# ── Meta ─────────────────────────────────────────────────────────────────────
+- name: "github-actions"
+  color: "000000"
+  description: "Pull requests that update GitHub Actions"
+
+- name: "python"
+  color: "3572A5"
+  description: "Python dependency update"
+
+- name: "javascript"
+  color: "f1e05a"
+  description: "JavaScript/TypeScript dependency update"
